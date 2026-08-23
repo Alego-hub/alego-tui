@@ -7,7 +7,11 @@
 #
 # Needs a local Alego checkout, since @singula-ai/* is not on npm yet. Place it
 # beside this repo (../alego) or export ALEGO_REPO=/path/to/alego.
-set -euo pipefail
+#
+# Deliberately POSIX-clean: no arrays, no process substitution, no pipefail, so
+# it behaves the same under `./install.sh`, `sh install.sh`, dash, and zsh.
+# Anything needing a resolved argv is delegated to scripts/install-plugin.mjs.
+set -eu
 
 PROFILE="${ALEGO_TUI_PROFILE:-alego-tui}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -18,24 +22,14 @@ if ! command -v npm >/dev/null 2>&1; then
 fi
 
 # npm install runs the postinstall link step, which is what makes the Alego CLI
-# resolvable below — so build first, then resolve.
+# resolvable below — so build first, then install into the profile.
 echo "==> building alego-tui in $HERE"
-(cd "$HERE" && npm install && npm run build)
-
-echo "==> locating the alego CLI"
-ALEGO_CMD=()
-while IFS= read -r line; do
-  ALEGO_CMD+=("$line")
-done < <(node "$HERE/scripts/resolve-alego-cli.mjs")
-
-if [ ${#ALEGO_CMD[@]} -eq 0 ]; then
-  exit 1
-fi
-
-echo "    using: ${ALEGO_CMD[*]}"
+cd "$HERE"
+npm install
+npm run build
 
 echo "==> installing into alego profile '$PROFILE'"
-"${ALEGO_CMD[@]}" plugin --profile "$PROFILE" add "$HERE"
+node "$HERE/scripts/install-plugin.mjs" "$PROFILE"
 
 echo
 echo "done. launch with:"
