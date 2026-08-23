@@ -277,3 +277,20 @@ observed behavior instead of leaving it skipped.
   approval round-trip, diff card, command bridge, model switch, resume) and the installed-path
   suite, which runs the real `alego plugin add` and confirms the profile manifest lists
   `['@singula-ai/alego-base', 'alego-tui']`.
+
+## Alego stage 4a — installer portability fix
+
+- `sh ./install.sh` failed with `syntax error near unexpected token '<'`. On macOS `/bin/sh` IS
+  bash, run in POSIX mode, and POSIX mode **disables process substitution** — so the
+  `done < <(node scripts/resolve-alego-cli.mjs)` line could not parse. It worked under
+  `./install.sh` (the bash shebang), which is why the stage-4 e2e never caught it: the installed-
+  path suite calls the CLI directly and never executes install.sh at all.
+- Root cause is more general than one construct: the script had to splice a *runtime-resolved
+  argv* (`alego`, or `node <path>/bin.js`) back into shell, and every shell-side way to do that
+  safely needs arrays plus process substitution. Moved the resolve-and-spawn into
+  `scripts/install-plugin.mjs` instead, where argv is passed inside one process and the problem
+  does not exist.
+- `install.sh` is now deliberately POSIX-clean — no arrays, no process substitution, no
+  `pipefail` — and syntax-checks under `sh`, `bash`, `bash --posix`, `dash` and `zsh`.
+- Testing gap worth remembering: a shell script that is only ever run one way is only tested one
+  way. `sh -n` across shells is nearly free and would have caught this before it shipped.
