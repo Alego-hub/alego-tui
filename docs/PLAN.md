@@ -155,3 +155,31 @@ repeating. Both are in [PORTING-NOTES.md](./PORTING-NOTES.md); the live architec
 
 - 2026-08-23: baseline imported (dsh-ccTUI v0.3.18 sources, 1956 tests green against
   deepseek-harness 0.1.0-rc.7).
+- 2026-08-23: Stage 1 merged (#1) — this plan.
+- 2026-08-23: Stage 2 merged (#2) — harness retargeted to `@singula-ai/alego-*` 0.1.1-rc.2;
+  `scripts/link-alego.mjs` resolves the unpublished scope from a local checkout; typecheck clean
+  on the first run and 1956 tests unchanged.
+- 2026-08-23: Stage 3 merged (#3) — rebranded to alego-tui v0.1.0: identifiers, `ALEGO_TUI_*`,
+  `~/.alego-tui`, the vendored fork as `@alego-tui/ink`, ALEGO-TUI wordmark, LEGO-brick mascot,
+  amber palette on Alego's #F5A524, and a real WCAG guard on the light brand hue.
+- 2026-08-23: Stage 4 merged (#4) — bundle manifest, CLI resolver, launcher, installer, README;
+  both PTY e2e suites green against real Alego. Found and fixed the one API drift the typecheck
+  could not see (`commands.execute` gained a required `images` parameter) and added
+  `src/harness/serviceContracts.ts` so that class fails at compile time from now on.
+- 2026-08-23: **v0.1.0 — the port is complete.** The TUI runs as an Alego bundle plugin:
+  conversation loop, tool trail with diff cards, approvals, questions, plan review, permission
+  modes, sessions and resume, the command bridge, model picker, usage metering, and a
+  checkout-based install. Verified from a fresh clone: `npm install` links the harness, `prepare`
+  builds the bundle, 1957 tests pass, and both end-to-end suites drive a real Alego boot.
+
+## What is left
+
+- **When Alego publishes to npm**: delete `scripts/link-alego.mjs` and the
+  `peerDependenciesMeta.optional` markers, and move the harness into ordinary dependencies. No
+  source file changes.
+- **Inherited upstream test skew**: 11 tests remain skipped from the dsh-ccTUI baseline, where
+  the upstream expectations had drifted from the upstream sources before the snapshot. Reconcile
+  each when a change touches that area.
+- **Features with no Alego backend**: billing/credits, voice, pets, browser progress, worktree
+  exit flow, rollback. The UI code remains and degrades silently — their RPCs resolve `{}` and
+  their events never fire.
