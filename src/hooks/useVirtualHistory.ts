@@ -1,4 +1,4 @@
-import type { ScrollBoxHandle } from '@dsh-cctui/ink'
+import type { ScrollBoxHandle } from '@alego-tui/ink'
 import {
   type RefObject,
   useCallback,

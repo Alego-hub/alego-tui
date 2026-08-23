@@ -9,10 +9,11 @@ import { appHomePath } from './appHome.js'
  *
  * Port of openclaude's `components/StartupScreen.palettes.ts` (values verbatim;
  * the Python twin is `src/utils/logo_palettes.py`). The chosen name persists in
- * the global config's top-level `logoColor` key (~/.clawcodex/config.json) —
- * written by the backend's `set_logo_color` control, read synchronously at TUI
- * startup by `readLogoColorSync` so the banner paints correctly on first render
- * (the original reads `getGlobalConfig().logoColor` the same way).
+ * the global config's top-level `logoColor` key (`~/.alego-tui/config.json`) —
+ * written via `config.set logoColor` into the app home (see lib/appHome.ts) and
+ * read synchronously at TUI startup by `readLogoColorSync`, so the banner paints
+ * correctly on first render (the original reads `getGlobalConfig().logoColor`
+ * the same way).
  */
 
 export type RGB = readonly [number, number, number]
@@ -31,6 +32,23 @@ export interface LogoPalette {
 }
 
 export const LOGO_PALETTES = {
+  // The brand ramp, anchored on Alego's #F5A524 at stop 3 (the wordmark's
+  // strongest row). banner.ts pins the same six stops as literals in
+  // LOGO_BRAND; a test asserts the two stay identical.
+  amber: {
+    gradient: [
+      [255, 226, 160],
+      [252, 205, 108],
+      [245, 165, 36],
+      [214, 134, 20],
+      [168, 101, 14],
+      [120, 70, 10]
+    ],
+    accent: [250, 190, 90],
+    cream: [240, 225, 200],
+    dim: [150, 120, 80],
+    border: [110, 88, 60]
+  },
   sunset: {
     gradient: [
       [255, 180, 100],
@@ -93,12 +111,13 @@ export type LogoPaletteName = keyof typeof LOGO_PALETTES
 
 export const LOGO_PALETTE_NAMES = Object.keys(LOGO_PALETTES) as LogoPaletteName[]
 
-export const DEFAULT_LOGO_PALETTE: LogoPaletteName = 'ocean'
+export const DEFAULT_LOGO_PALETTE: LogoPaletteName = 'amber'
 
 export const LOGO_PALETTE_LABELS: Record<LogoPaletteName, string> = {
   sunset: 'Sunset',
   forest: 'Forest green',
-  ocean: 'Ocean blue (default)',
+  amber: 'Alego amber (default)',
+  ocean: 'Ocean blue',
   monochrome: 'Monochrome'
 }
 
@@ -126,7 +145,7 @@ export function gradientStopForRow(stops: readonly RGB[], i: number, n: number):
  * The persisted `logoColor` palette name, or `''` when unset/invalid/unreadable.
  * Synchronous on purpose: the banner is the first transcript row and must paint
  * correctly before the backend is up (~20s cold start), exactly like the
- * original's `getGlobalConfig()` read. `DSH_CCTUI_HOME` matches lib/history.ts.
+ * original's `getGlobalConfig()` read. `ALEGO_TUI_HOME` matches lib/history.ts.
  */
 export function readLogoColorSync(): '' | LogoPaletteName {
   try {

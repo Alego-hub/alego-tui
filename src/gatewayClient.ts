@@ -52,11 +52,11 @@ const WORKTREE_RPC_TIMEOUT_MS = 600_000
 const IMAGE_RPC_TIMEOUT_MS = 30_000
 // clawcodex app version shown in the banner ("clawcodex v{version}"). Keep in
 // sync with the installer (install.sh INSTALLER_VERSION).
-const DSH_CCTUI_VERSION = '1.4.0'
+const ALEGO_TUI_VERSION = '1.4.0'
 
 /** Command that launches the clawcodex agent-server (set by the Python launcher). */
 function resolveAgentCmd(): string[] {
-  const raw = process.env.DSH_CCTUI_AGENT_SERVER_CMD?.trim()
+  const raw = process.env.ALEGO_TUI_AGENT_SERVER_CMD?.trim()
 
   if (!raw) {return ['clawcodex', 'agent-server']}
 
@@ -140,7 +140,7 @@ function toolContext(input: any): string {
 
 /** Shorten an absolute path to a workspace-relative path (or basename). */
 function relativizePath(p: string): string {
-  const ws = (process.env.DSH_CCTUI_WORKSPACE || process.env.DSH_CCTUI_CWD || process.cwd()).replace(/\/+$/, '')
+  const ws = (process.env.ALEGO_TUI_WORKSPACE || process.env.ALEGO_TUI_CWD || process.cwd()).replace(/\/+$/, '')
 
   if (ws && p.startsWith(ws + '/')) {return p.slice(ws.length + 1)}
   const parts = p.split('/')
@@ -777,7 +777,7 @@ export const SLASHES: ReadonlyArray<{ desc: string; hint?: string; name: string 
   { desc: 'Switch the model', name: '/model' },
   { desc: 'Set the output style', hint: '[<name>]', name: '/output-style' },
   { desc: 'Change the startup logo color scheme', name: '/logo' },
-  { desc: 'Choose what dsh-ccTUI is allowed to do', name: '/permissions' },
+  { desc: 'Choose what alego-tui is allowed to do', name: '/permissions' },
   { desc: 'Compact the conversation to save context', name: '/compact' },
   { desc: 'Show context-window usage', name: '/context' },
   { desc: 'Show the total cost and duration of the current session', name: '/cost' },
@@ -837,7 +837,7 @@ export const SLASHES: ReadonlyArray<{ desc: string; hint?: string; name: string 
   { desc: 'List or start background agents', name: '/bg' },
   { desc: 'Resume a past session', name: '/resume' },
   { desc: 'Rename this session', hint: '<name>', name: '/rename' },
-  { desc: 'Exit dsh-ccTUI', name: '/exit' }
+  { desc: 'Exit alego-tui', name: '/exit' }
 ]
 
 type Pending = { reject: (e: Error) => void; resolve: (v: unknown) => void }
@@ -910,7 +910,7 @@ export class GatewayClient extends EventEmitter {
   // ── lifecycle ────────────────────────────────────────────────────────────
   start(): void {
     const cmd = resolveAgentCmd()
-    const cwd = process.env.DSH_CCTUI_WORKSPACE || process.env.DSH_CCTUI_CWD || process.cwd()
+    const cwd = process.env.ALEGO_TUI_WORKSPACE || process.env.ALEGO_TUI_CWD || process.cwd()
     const env = { ...process.env, PYTHONUNBUFFERED: '1' }
 
     this.readyTimer = setTimeout(() => {
@@ -2147,7 +2147,7 @@ export class GatewayClient extends EventEmitter {
   // resolve the dir part of the typed word, list it, filter by the basename).
   private completePath(word: string): Array<{ display: string; meta: string; text: string }> {
     try {
-      const cwd = process.env.DSH_CCTUI_WORKSPACE || process.env.DSH_CCTUI_CWD || process.cwd()
+      const cwd = process.env.ALEGO_TUI_WORKSPACE || process.env.ALEGO_TUI_CWD || process.cwd()
       const stripped = word.startsWith('@') ? word.slice(1) : word
       const slash = stripped.lastIndexOf('/')
       const dirPart = slash === -1 ? '' : stripped.slice(0, slash + 1)
@@ -2850,7 +2850,7 @@ export class GatewayClient extends EventEmitter {
       // The app gates "ready" on info.version (useSessionLifecycle:227) and the
       // banner shows it as "clawcodex v{version}", so this is the app version,
       // not the wire protocol_version.
-      version: DSH_CCTUI_VERSION
+      version: ALEGO_TUI_VERSION
     } as SessionInfo
   }
 }

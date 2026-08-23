@@ -20,7 +20,7 @@ const buildUiState = (): UiState => ({
   info: null,
   liveSessionCount: 0,
   inlineDiffs: true,
-  // Seeded synchronously from ~/.dsh-cctui/config.json so the banner's first
+  // Seeded synchronously from ~/.alego-tui/config.json so the banner's first
   // paint is already in the chosen palette (the backend isn't up yet).
   logoPalette: readLogoColorSync(),
   mouseTracking: MOUSE_TRACKING,
@@ -33,7 +33,7 @@ const buildUiState = (): UiState => ({
   sessionStats: ZERO_SESSION_STATS,
   showReasoning: false,
   sid: null,
-  status: 'starting dsh-ccTUI…',
+  status: 'starting alego-tui…',
   statusBar: 'off',
   streaming: true,
   theme: DEFAULT_THEME,

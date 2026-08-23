@@ -32,7 +32,7 @@ await build({
   outfile: out,
   jsx: 'automatic',
   jsxImportSource: 'react',
-  alias: { '@dsh-cctui/ink': resolve(root, 'packages/dsh-cctui-ink/src/entry-exports.ts') },
+  alias: { '@alego-tui/ink': resolve(root, 'packages/alego-tui-ink/src/entry-exports.ts') },
   plugins: [stubDevtools],
   banner: {
     js: "import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);"

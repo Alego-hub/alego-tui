@@ -1,11 +1,11 @@
-// Cordis plugin surface for dsh-cctui. Kept minimal: the loader reads
+// Cordis plugin surface for alego-tui. Kept minimal: the loader reads
 // name/inject/Config synchronously; the heavy TUI wiring lives in plugin.ts
 // behind a dynamic import so a boot failure surfaces as a plugin error
 // instead of a module-load crash.
 import type { Context } from '@singula-ai/cordis'
 import Schema from '@singula-ai/schemastery'
 
-export const name = 'dsh-cctui'
+export const name = 'alego-tui'
 
 // Code-level inject stays minimal (the agent registry is the one hard
 // requirement); optional services are soft-probed with ctx.get so the plugin
@@ -36,5 +36,5 @@ export const Config: Schema<Config> = Schema.object({
 export async function apply(ctx: Context, config: Config): Promise<void> {
   const mod = await import('./plugin.js')
 
-  await mod.mountCcTui(ctx, config)
+  await mod.mountAlegoTui(ctx, config)
 }

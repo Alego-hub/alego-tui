@@ -1,4 +1,4 @@
-import { Box, Link, stringWidth, Text } from '@dsh-cctui/ink'
+import { Box, Link, stringWidth, Text } from '@alego-tui/ink'
 import { Fragment, memo, type ReactNode, useMemo } from 'react'
 
 import { ensureEmojiPresentation } from '../lib/emoji.js'

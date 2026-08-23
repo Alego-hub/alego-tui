@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
 
-import { renderSync } from '@dsh-cctui/ink'
+import { renderSync } from '@alego-tui/ink'
 import React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -300,9 +300,9 @@ describe('TodoPanel rendering', () => {
     expect(plain).toMatch(/◻ Add tests/)
     // done rows: strikethrough SGR (9); in-progress: bold around subject
     expect(output).toContain('\x1b[9m')
-    // icon colors: ✔ success green (78;186;101), ◼ brand blue (77;107;254 → hex 4D6BFE)
+    // icon colors: ✔ success green (78;186;101), ◼ brand amber (245;165;36 → hex F5A524)
     expect(output).toContain('78;186;101')
-    expect(output).toContain('77;107;254')
+    expect(output).toContain('245;165;36')
   })
 
   it('caps the visible list and summarizes the overflow', () => {

@@ -104,7 +104,7 @@ const searchProvider = {
     content: `answer for ${request.query}`,
     sources: [
       { snippet: 'the harness itself', title: 'deepseek-harness', url: 'https://github.com/deepseek-ai/deepseek-harness' },
-      { title: 'dsh-ccTUI', url: 'https://github.com/agentforce314/dsh-ccTUI' }
+      { title: 'alego-tui', url: 'https://github.com/agentforce314/alego-tui' }
     ],
     truncated: false
   })

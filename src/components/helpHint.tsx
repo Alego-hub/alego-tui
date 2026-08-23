@@ -1,4 +1,4 @@
-import { Box, Text } from '@dsh-cctui/ink'
+import { Box, Text } from '@alego-tui/ink'
 
 import { HOTKEYS } from '../content/hotkeys.js'
 import type { Theme } from '../theme.js'
@@ -9,7 +9,7 @@ const COMMON_COMMANDS: [string, string][] = [
   ['/resume', 'switch live or resume past sessions'],
   ['/details', 'control transcript detail level'],
   ['/copy', 'copy selection or last assistant message'],
-  ['/exit', 'exit dsh-ccTUI']
+  ['/exit', 'exit alego-tui']
 ]
 
 // 9 rows so the link-opening gesture (inserted near the top when the

@@ -1,4 +1,4 @@
-import { Box, Text } from '@dsh-cctui/ink'
+import { Box, Text } from '@alego-tui/ink'
 import { useStore } from '@nanostores/react'
 
 import { useGateway } from '../app/gatewayContext.js'

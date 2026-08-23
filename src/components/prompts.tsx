@@ -1,4 +1,4 @@
-import { Box, Text, useInput, wrapAnsi } from '@dsh-cctui/ink'
+import { Box, Text, useInput, wrapAnsi } from '@alego-tui/ink'
 import { useState } from 'react'
 
 import { isMac } from '../lib/platform.js'

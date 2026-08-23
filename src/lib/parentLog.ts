@@ -24,7 +24,7 @@ const logDir = appHomePath('logs')
 const CRASH_LOG = join(logDir, 'tui_gateway_crash.log')
 
 // Skipped under vitest so unit tests exercising start()/kill() can't write into
-// a real ~/.dsh-cctui (tests must stay hermetic — see AGENTS.md).
+// a real ~/.alego-tui (tests must stay hermetic — see AGENTS.md).
 const enabled = !process.env.VITEST
 // Slice a single breadcrumb's value to MAX_BREADCRUMB chars (a short
 // "[truncated …]" marker is appended, so the written line is slightly longer)
@@ -55,7 +55,7 @@ export function recordParentLifecycle(line: string): void {
   } catch {
     if (!warned) {
       warned = true
-      process.stderr.write('dsh-ccTUI: parent lifecycle log unavailable\n')
+      process.stderr.write('alego-tui: parent lifecycle log unavailable\n')
     }
   }
 }

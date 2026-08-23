@@ -9,7 +9,7 @@
  */
 import { PassThrough } from 'node:stream'
 
-import { renderSync } from '@dsh-cctui/ink'
+import { renderSync } from '@alego-tui/ink'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 

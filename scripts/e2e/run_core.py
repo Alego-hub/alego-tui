@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """End-to-end suite: boot the real alego (from this repo's node_modules) with
-the alego-base bundle + the built cctui plugin + a scripted mock LLM, inside a
+the alego-base bundle + the built tui plugin + a scripted mock LLM, inside a
 real PTY, and drive full user scenarios.
 
 Phase 1 (fixed session id): conversation loop + sandbox-escalation approval.
@@ -56,7 +56,7 @@ def bootstrap(fixed_session: str | None) -> None:
 - insert:
     - id: mock-llm
       name: '{ROOT}/test/e2e/mock-llm.mjs'
-    - id: cctui
+    - id: tui
       name: '{ROOT}/dist/plugin.js'
       config:
         provider: mock
@@ -76,8 +76,8 @@ class TuiSession:
         env = dict(os.environ)
         env["ALEGO_HOME"] = str(HOME)
         env["NODE_ENV"] = "production"
-        env["DSH_CCTUI_INLINE"] = "1"
-        env.pop("DSH_CCTUI_THEME", None)
+        env["ALEGO_TUI_INLINE"] = "1"
+        env.pop("ALEGO_TUI_THEME", None)
         cmd = [
             "node",
             str(ROOT / "node_modules" / "@singula-ai" / "alego" / "lib" / "bin.js"),

@@ -46,13 +46,13 @@ class FakeProc extends EventEmitter {
 const flush = () => new Promise(resolve => setTimeout(resolve, 0))
 
 describe('/goal gateway adapter', () => {
-  const prevWs = process.env.DSH_CCTUI_WORKSPACE
+  const prevWs = process.env.ALEGO_TUI_WORKSPACE
   let events: any[]
   let gw: GatewayClient
   let proc: FakeProc
 
   beforeEach(() => {
-    process.env.DSH_CCTUI_WORKSPACE = '/ws'
+    process.env.ALEGO_TUI_WORKSPACE = '/ws'
     proc = new FakeProc()
     harness.proc = proc
     harness.spawnCalls = []
@@ -66,8 +66,8 @@ describe('/goal gateway adapter', () => {
   afterEach(() => {
     gw.kill()
 
-    if (prevWs === undefined) {delete process.env.DSH_CCTUI_WORKSPACE}
-    else {process.env.DSH_CCTUI_WORKSPACE = prevWs}
+    if (prevWs === undefined) {delete process.env.ALEGO_TUI_WORKSPACE}
+    else {process.env.ALEGO_TUI_WORKSPACE = prevWs}
   })
 
   const replyToLastControl = async (response: unknown) => {

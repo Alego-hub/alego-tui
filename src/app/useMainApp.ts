@@ -6,7 +6,7 @@ import {
   useStdout,
   useTerminalTitle,
   withInkSuspended
-} from '@dsh-cctui/ink'
+} from '@alego-tui/ink'
 import { useStore } from '@nanostores/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -742,7 +742,7 @@ export function useMainApp(gw: GatewayClient) {
   const tabCwd = ui.info?.cwd
 
   useTerminalTitle(
-    model ? composeTabTitle(marker, ui.sessionTitle, model, tabCwd ? shortCwd(tabCwd, 24) : '') : 'dsh-ccTUI'
+    model ? composeTabTitle(marker, ui.sessionTitle, model, tabCwd ? shortCwd(tabCwd, 24) : '') : 'alego-tui'
   )
 
   useEffect(() => {
@@ -1182,7 +1182,7 @@ export function useMainApp(gw: GatewayClient) {
     (path: string) => {
       patchOverlayState({ memoryPicker: false })
       void openMemoryFileInEditor(path, {
-        cwd: getUiState().info?.cwd || process.env.DSH_CCTUI_WORKSPACE || process.env.DSH_CCTUI_CWD || process.cwd(),
+        cwd: getUiState().info?.cwd || process.env.ALEGO_TUI_WORKSPACE || process.env.ALEGO_TUI_CWD || process.cwd(),
         notifyEdited: () => void gw.request('memory.edited', {}).catch(() => {}),
         suspend: withInkSuspended,
         sys
@@ -1356,7 +1356,7 @@ export function useMainApp(gw: GatewayClient) {
   // randomly disappear when the live tail scrolls offscreen.
   const appProgress = useMemo(() => ({ showProgressArea }), [showProgressArea])
 
-  const cwd = ui.info?.cwd || process.env.DSH_CCTUI_CWD || process.cwd()
+  const cwd = ui.info?.cwd || process.env.ALEGO_TUI_CWD || process.cwd()
   const gitBranch = useGitBranch(cwd)
 
   const appStatus = useMemo(

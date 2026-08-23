@@ -15,7 +15,7 @@ vi.mock('node:child_process', () => ({
   }
 }))
 
-import { renderSync } from '@dsh-cctui/ink'
+import { renderSync } from '@alego-tui/ink'
 import React from 'react'
 
 import { turnController } from '../app/turnController.js'
@@ -145,13 +145,13 @@ describe('ColorDiff layout', () => {
 // ── GatewayClient: tool_use_result → structured_diff ────────────────────────
 
 describe('GatewayClient structured diff mapping', () => {
-  const prevWs = process.env.DSH_CCTUI_WORKSPACE
+  const prevWs = process.env.ALEGO_TUI_WORKSPACE
   let events: any[]
   let gw: GatewayClient
   let proc: FakeProc
 
   beforeEach(() => {
-    process.env.DSH_CCTUI_WORKSPACE = '/ws'
+    process.env.ALEGO_TUI_WORKSPACE = '/ws'
     proc = new FakeProc()
     harness.proc = proc
     harness.spawnCalls = []
@@ -166,9 +166,9 @@ describe('GatewayClient structured diff mapping', () => {
     gw.kill()
 
     if (prevWs === undefined) {
-      delete process.env.DSH_CCTUI_WORKSPACE
+      delete process.env.ALEGO_TUI_WORKSPACE
     } else {
-      process.env.DSH_CCTUI_WORKSPACE = prevWs
+      process.env.ALEGO_TUI_WORKSPACE = prevWs
     }
   })
 

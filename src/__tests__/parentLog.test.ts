@@ -5,13 +5,13 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // parentLog gates itself off under VITEST so unit tests can't pollute a real
-// ~/.dsh-cctui. To exercise the real persistence path we clear that gate, point
-// DSH_CCTUI_HOME at a temp dir, and re-import the module fresh (path + enabled
+// ~/.alego-tui. To exercise the real persistence path we clear that gate, point
+// ALEGO_TUI_HOME at a temp dir, and re-import the module fresh (path + enabled
 // flag are captured at module load).
 const loadFresh = async (home: string) => {
   vi.resetModules()
   vi.stubEnv('VITEST', '')
-  vi.stubEnv('DSH_CCTUI_HOME', home)
+  vi.stubEnv('ALEGO_TUI_HOME', home)
 
   return import('../lib/parentLog.js')
 }
@@ -20,7 +20,7 @@ describe('recordParentLifecycle', () => {
   let home: string
 
   beforeEach(() => {
-    home = mkdtempSync(join(tmpdir(), 'dsh-cctui-parentlog-'))
+    home = mkdtempSync(join(tmpdir(), 'alego-tui-parentlog-'))
   })
 
   afterEach(() => {
@@ -67,7 +67,7 @@ describe('recordParentLifecycle', () => {
   it('is a no-op under VITEST so tests stay hermetic', async () => {
     vi.resetModules()
     vi.stubEnv('VITEST', 'true')
-    vi.stubEnv('DSH_CCTUI_HOME', home)
+    vi.stubEnv('ALEGO_TUI_HOME', home)
 
     const { recordParentLifecycle } = await import('../lib/parentLog.js')
 

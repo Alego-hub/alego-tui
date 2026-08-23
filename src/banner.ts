@@ -1,4 +1,4 @@
-import { stringWidth } from '@dsh-cctui/ink'
+import { stringWidth } from '@alego-tui/ink'
 
 import {
   DEFAULT_LOGO_PALETTE,
@@ -54,49 +54,50 @@ export function parseRichMarkup(markup: string): Line[] {
 }
 
 const LOGO_ART = [
-  '██████╗ ███████╗██╗  ██╗         ██████╗ ██████╗████████╗██╗   ██╗██╗',
-  '██╔══██╗██╔════╝██║  ██║        ██╔════╝██╔════╝╚══██╔══╝██║   ██║██║',
-  '██║  ██║███████╗███████║ █████╗ ██║     ██║        ██║   ██║   ██║██║',
-  '██║  ██║╚════██║██╔══██║ ╚════╝ ██║     ██║        ██║   ██║   ██║██║',
-  '██████╔╝███████║██║  ██║        ╚██████╗╚██████╗   ██║   ╚██████╔╝██║',
-  '╚═════╝ ╚══════╝╚═╝  ╚═╝         ╚═════╝ ╚═════╝   ╚═╝    ╚═════╝ ╚═╝'
+  ' █████╗ ██╗     ███████╗ ██████╗  ██████╗         ████████╗██╗   ██╗██╗',
+  '██╔══██╗██║     ██╔════╝██╔════╝ ██╔═══██╗        ╚══██╔══╝██║   ██║██║',
+  '███████║██║     █████╗  ██║  ███╗██║   ██║ █████╗    ██║   ██║   ██║██║',
+  '██╔══██║██║     ██╔══╝  ██║   ██║██║   ██║ ╚════╝    ██║   ██║   ██║██║',
+  '██║  ██║███████╗███████╗╚██████╔╝╚██████╔╝           ██║   ╚██████╔╝██║',
+  '╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝  ╚═════╝            ╚═╝    ╚═════╝ ╚═╝'
 ]
 
-// dsh-ccTUI mascot — a blue whale, matching the DeepSeek brand. Painted from
-// the active /logo gradient (default: ocean blues), beside the session panel.
-const WHALE_ART = [
-  '       : \' :',
-  '    ___\'_______',
-  '  /\'  o        \\--.',
-  ' |              ___\\',
-  '  \\____________/  \\/',
-  '     \\__/  \\__/'
+// alego-tui mascot — a LEGO-style brick: Alego is "AI agent LEGO blocks" and
+// its mark is a three-stud brick. Painted from the active /logo gradient
+// (default: Alego amber), beside the session panel.
+const BRICK_ART = [
+  '   ▄██▄  ▄██▄  ▄██▄',
+  ' ╔══════════════════╗',
+  ' ║ ░░░░░░░░░░░░░░░░ ║',
+  ' ║ ░░░░░░░░░░░░░░░░ ║',
+  ' ╚══════════════════╝',
+  '    ▀▀▀▀▀▀▀▀▀▀▀▀▀▀'
 ]
 
-// The brand ramp: the "ocean" palette's stops — sky blue down to deep sea,
-// matching DeepSeek's blue. Held here as strings (not read from LOGO_PALETTES)
-// so the shipped wordmark look is pinned even if a palette entry is retuned;
-// the two are kept identical and a test asserts it.
+// The brand ramp: the "amber" palette's stops — pale gold down to burnt amber,
+// anchored on Alego's #F5A524. Held here as strings (not read from
+// LOGO_PALETTES) so the shipped wordmark look is pinned even if a palette entry
+// is retuned; the two are kept identical and a test asserts it.
 const LOGO_BRAND = [
-  'rgb(170,220,255)',
-  'rgb(125,185,240)',
-  'rgb(80,150,220)',
-  'rgb(55,115,190)',
-  'rgb(40,85,150)',
-  'rgb(25,55,110)'
+  'rgb(255,226,160)',
+  'rgb(252,205,108)',
+  'rgb(245,165,36)',
+  'rgb(214,134,20)',
+  'rgb(168,101,14)',
+  'rgb(120,70,10)'
 ] as const
 
 export const LOGO_WIDTH = Math.max(...LOGO_ART.map(line => line.length))
-export const WHALE_WIDTH = Math.max(...WHALE_ART.map(line => line.length))
+export const BRICK_WIDTH = Math.max(...BRICK_ART.map(line => line.length))
 
 // /logo palette → banner painting (applied at the banner's startup paint; the
 // intro row is committed to scrollback, so a mid-session /logo shows on the
 // NEXT launch, matching the original). The unset default AND an explicit
-// "ocean" both keep the shipped look (brand LOGO_BRAND wordmark, ocean-blue
-// whale): "Ocean blue (default)" IS dsh-ccTUI's default scheme, and picking
+// "amber" both keep the shipped look (brand LOGO_BRAND wordmark, amber
+// brick): "Alego amber (default)" IS alego-tui's default scheme, and picking
 // it must return exactly to it. Only a non-default palette changes the paint —
 // wordmark rows one gradient stop each, mascot rows sampled from the same
-// gradient so the whale never clashes with the wordmark. Skin overrides
+// gradient so the brick never clashes with the wordmark. Skin overrides
 // (customLogo / customHero) win over the palette: a skin is a full rebrand,
 // /logo recolors the default logo.
 const nonDefaultPalette = (logoColor?: string): LogoPaletteName | null =>
@@ -120,7 +121,7 @@ export const logo = (c: ThemeColors, customLogo?: string, logoColor?: string): L
   return LOGO_ART.map((text, i) => [grad[i] ?? c.primary, text])
 }
 
-export const whale = (_c: ThemeColors, customHero?: string, logoColor?: string): Line[] => {
+export const brick = (_c: ThemeColors, customHero?: string, logoColor?: string): Line[] => {
   if (customHero) {
     return parseRichMarkup(customHero)
   }
@@ -128,7 +129,7 @@ export const whale = (_c: ThemeColors, customHero?: string, logoColor?: string):
   const name = nonDefaultPalette(logoColor)
   const stops = name ? LOGO_PALETTES[name].gradient : LOGO_PALETTES[DEFAULT_LOGO_PALETTE].gradient
 
-  return WHALE_ART.map((text, i) => [rgbStr(gradientStopForRow(stops, i, WHALE_ART.length)), text])
+  return BRICK_ART.map((text, i) => [rgbStr(gradientStopForRow(stops, i, BRICK_ART.length)), text])
 }
 
 // Measured in columns, not code units: this feeds the header's left-column

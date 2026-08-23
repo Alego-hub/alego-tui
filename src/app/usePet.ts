@@ -1,4 +1,4 @@
-import { useStdout } from '@dsh-cctui/ink'
+import { useStdout } from '@alego-tui/ink'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { PetGrid } from '../components/petSprite.js'

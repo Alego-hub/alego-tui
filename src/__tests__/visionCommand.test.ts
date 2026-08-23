@@ -30,13 +30,13 @@ class FakeProc extends EventEmitter {
 }
 
 describe('/vision', () => {
-  const prevWs = process.env.DSH_CCTUI_WORKSPACE
+  const prevWs = process.env.ALEGO_TUI_WORKSPACE
   let gw: GatewayClient
   let proc: FakeProc
   let seen: any[]
 
   beforeEach(() => {
-    process.env.DSH_CCTUI_WORKSPACE = '/ws'
+    process.env.ALEGO_TUI_WORKSPACE = '/ws'
     proc = new FakeProc()
     harness.proc = proc
     harness.spawnCalls = []
@@ -48,8 +48,8 @@ describe('/vision', () => {
 
   afterEach(() => {
     gw.kill()
-    if (prevWs === undefined) {delete process.env.DSH_CCTUI_WORKSPACE}
-    else {process.env.DSH_CCTUI_WORKSPACE = prevWs}
+    if (prevWs === undefined) {delete process.env.ALEGO_TUI_WORKSPACE}
+    else {process.env.ALEGO_TUI_WORKSPACE = prevWs}
   })
 
   const stdinFrames = (): any[] => {

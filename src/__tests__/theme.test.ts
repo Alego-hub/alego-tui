@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 // `theme.js` reads `process.env` at module-load to compute DEFAULT_THEME,
 // and `fromSkin` closes over DEFAULT_THEME.  A developer shell with
-// DSH_CCTUI_THEME=light (or DSH_CCTUI_BACKGROUND set to something
+// ALEGO_TUI_THEME=light (or ALEGO_TUI_BACKGROUND set to something
 // bright) would flip the base and turn these assertions into a local-
 // only failure.  We sterilize the relevant env vars + dynamically
 // import the module fresh so EVERY symbol that closes over the env
@@ -12,9 +12,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 // `detectLightMode` takes env as an explicit arg, so it's safe to import
 // statically — but we stay consistent and dynamic-import it too.
 const RELEVANT_ENV = [
-  'DSH_CCTUI_LIGHT',
-  'DSH_CCTUI_THEME',
-  'DSH_CCTUI_BACKGROUND',
+  'ALEGO_TUI_LIGHT',
+  'ALEGO_TUI_THEME',
+  'ALEGO_TUI_BACKGROUND',
   'COLORFGBG',
   'COLORTERM',
   'TERM_PROGRAM'
@@ -43,21 +43,21 @@ describe('DEFAULT_THEME', () => {
   it('has brand defaults', async () => {
     const { DEFAULT_THEME } = await importThemeWithCleanEnv()
 
-    expect(DEFAULT_THEME.brand.name).toBe('dsh-ccTUI')
+    expect(DEFAULT_THEME.brand.name).toBe('alego-tui')
     expect(DEFAULT_THEME.brand.prompt).toBe('❯')
     expect(DEFAULT_THEME.brand.tool).toBe('┊')
   })
 
-  it('has the DeepSeek-blue dark palette', async () => {
+  it('has the Alego-amber dark palette', async () => {
     const { DEFAULT_THEME } = await importThemeWithCleanEnv()
 
-    expect(DEFAULT_THEME.color.primary).toBe('#4D6BFE') // deepseek blue
+    expect(DEFAULT_THEME.color.primary).toBe('#F5A524') // Alego amber
     expect(DEFAULT_THEME.color.error).toBe('#FF6B80')
     expect(DEFAULT_THEME.color.text).toBe('#FFFFFF')
     expect(DEFAULT_THEME.color.muted).toBe('rgb(153,153,153)')
     // original-CC tokens consumed by the ported surfaces
     expect(DEFAULT_THEME.color.subtle).toBe('rgb(80,80,80)')
-    expect(DEFAULT_THEME.color.claudeShimmer).toBe('rgb(150,180,255)')
+    expect(DEFAULT_THEME.color.claudeShimmer).toBe('rgb(252,205,108)')
     expect(DEFAULT_THEME.color.planMode).toBe('rgb(72,150,140)')
     expect(DEFAULT_THEME.color.autoAccept).toBe('rgb(175,135,255)')
     expect(DEFAULT_THEME.color.permission).toBe('rgb(177,185,249)')
@@ -74,6 +74,25 @@ describe('LIGHT_THEME', () => {
     expect(LIGHT_THEME.color.accent).not.toBe('#FFBF00')
     expect(LIGHT_THEME.color.muted).not.toBe('#B8860B')
     expect(LIGHT_THEME.color.statusWarn).not.toBe('#FFD700')
+  })
+
+  // The blacklist above only rejects four specific hexes, which was enough
+  // while the brand hue was a blue. The Alego rebrand moved it into exactly the
+  // family #11300 was about, so measure the thing that actually matters.
+  it('keeps the brand hue legible on white (WCAG AA)', async () => {
+    const { LIGHT_THEME } = await importThemeWithCleanEnv()
+
+    const channel = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
+    const luminance = (hex: string) => {
+      const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
+
+      return 0.2126 * channel(r!) + 0.7152 * channel(g!) + 0.0722 * channel(b!)
+    }
+    const contrastOnWhite = (hex: string) => 1.05 / (luminance(hex) + 0.05)
+
+    for (const token of ['primary', 'accent'] as const) {
+      expect(contrastOnWhite(LIGHT_THEME.color[token])).toBeGreaterThanOrEqual(4.5)
+    }
   })
 
   it('keeps the same shape as DARK_THEME', async () => {
@@ -124,14 +143,14 @@ describe('detectLightMode', () => {
     expect(detectLightMode({ TERM_PROGRAM: 'Apple_Terminal' })).toBe(true)
   })
 
-  it('honors DSH_CCTUI_LIGHT on/off', async () => {
+  it('honors ALEGO_TUI_LIGHT on/off', async () => {
     const { detectLightMode } = await importThemeWithCleanEnv()
 
-    expect(detectLightMode({ DSH_CCTUI_LIGHT: '1' })).toBe(true)
-    expect(detectLightMode({ DSH_CCTUI_LIGHT: 'true' })).toBe(true)
-    expect(detectLightMode({ DSH_CCTUI_LIGHT: 'on' })).toBe(true)
-    expect(detectLightMode({ DSH_CCTUI_LIGHT: '0' })).toBe(false)
-    expect(detectLightMode({ DSH_CCTUI_LIGHT: 'off' })).toBe(false)
+    expect(detectLightMode({ ALEGO_TUI_LIGHT: '1' })).toBe(true)
+    expect(detectLightMode({ ALEGO_TUI_LIGHT: 'true' })).toBe(true)
+    expect(detectLightMode({ ALEGO_TUI_LIGHT: 'on' })).toBe(true)
+    expect(detectLightMode({ ALEGO_TUI_LIGHT: '0' })).toBe(false)
+    expect(detectLightMode({ ALEGO_TUI_LIGHT: 'off' })).toBe(false)
   })
 
   it('sniffs COLORFGBG bg slots 7 and 15 as light (#11300)', async () => {
@@ -157,31 +176,31 @@ describe('detectLightMode', () => {
     expect(detectLightMode({ COLORFGBG: '15;' })).toBe(false)
   })
 
-  it('lets DSH_CCTUI_LIGHT=0 override a light COLORFGBG', async () => {
+  it('lets ALEGO_TUI_LIGHT=0 override a light COLORFGBG', async () => {
     const { detectLightMode } = await importThemeWithCleanEnv()
 
-    expect(detectLightMode({ COLORFGBG: '0;15', DSH_CCTUI_LIGHT: '0' })).toBe(false)
+    expect(detectLightMode({ COLORFGBG: '0;15', ALEGO_TUI_LIGHT: '0' })).toBe(false)
   })
 
-  it('honors DSH_CCTUI_THEME=light/dark as a symmetric explicit override', async () => {
+  it('honors ALEGO_TUI_THEME=light/dark as a symmetric explicit override', async () => {
     const { detectLightMode } = await importThemeWithCleanEnv()
 
-    expect(detectLightMode({ DSH_CCTUI_THEME: 'light' })).toBe(true)
-    expect(detectLightMode({ DSH_CCTUI_THEME: 'dark' })).toBe(false)
-    expect(detectLightMode({ COLORFGBG: '0;15', DSH_CCTUI_THEME: 'dark' })).toBe(false)
-    expect(detectLightMode({ COLORFGBG: '15;0', DSH_CCTUI_THEME: 'light' })).toBe(true)
+    expect(detectLightMode({ ALEGO_TUI_THEME: 'light' })).toBe(true)
+    expect(detectLightMode({ ALEGO_TUI_THEME: 'dark' })).toBe(false)
+    expect(detectLightMode({ COLORFGBG: '0;15', ALEGO_TUI_THEME: 'dark' })).toBe(false)
+    expect(detectLightMode({ COLORFGBG: '15;0', ALEGO_TUI_THEME: 'light' })).toBe(true)
   })
 
-  it('uses DSH_CCTUI_BACKGROUND luminance when COLORFGBG is missing', async () => {
+  it('uses ALEGO_TUI_BACKGROUND luminance when COLORFGBG is missing', async () => {
     const { detectLightMode } = await importThemeWithCleanEnv()
 
-    expect(detectLightMode({ DSH_CCTUI_BACKGROUND: '#ffffff' })).toBe(true)
-    expect(detectLightMode({ DSH_CCTUI_BACKGROUND: '#000000' })).toBe(false)
-    expect(detectLightMode({ DSH_CCTUI_BACKGROUND: '#1e1e1e' })).toBe(false)
+    expect(detectLightMode({ ALEGO_TUI_BACKGROUND: '#ffffff' })).toBe(true)
+    expect(detectLightMode({ ALEGO_TUI_BACKGROUND: '#000000' })).toBe(false)
+    expect(detectLightMode({ ALEGO_TUI_BACKGROUND: '#1e1e1e' })).toBe(false)
     // Three-char hex normalises like CSS.
-    expect(detectLightMode({ DSH_CCTUI_BACKGROUND: '#fff' })).toBe(true)
+    expect(detectLightMode({ ALEGO_TUI_BACKGROUND: '#fff' })).toBe(true)
     // Garbage falls through to the default-dark path.
-    expect(detectLightMode({ DSH_CCTUI_BACKGROUND: 'not-a-colour' })).toBe(false)
+    expect(detectLightMode({ ALEGO_TUI_BACKGROUND: 'not-a-colour' })).toBe(false)
   })
 
   it('rejects partially-invalid hex instead of silently truncating', async () => {
@@ -189,12 +208,12 @@ describe('detectLightMode', () => {
     // `parseInt('fffgff'.slice(2,4), 16)` would return 15 — the strict
     // regex must reject these inputs so they fall through to default-
     // dark instead of producing a false-positive light reading.
-    expect(detectLightMode({ DSH_CCTUI_BACKGROUND: '#fffgff' })).toBe(false)
-    expect(detectLightMode({ DSH_CCTUI_BACKGROUND: 'ffggff' })).toBe(false)
-    expect(detectLightMode({ DSH_CCTUI_BACKGROUND: '#xyz' })).toBe(false)
+    expect(detectLightMode({ ALEGO_TUI_BACKGROUND: '#fffgff' })).toBe(false)
+    expect(detectLightMode({ ALEGO_TUI_BACKGROUND: 'ffggff' })).toBe(false)
+    expect(detectLightMode({ ALEGO_TUI_BACKGROUND: '#xyz' })).toBe(false)
     // Wrong length also rejected (no implicit padding/truncation).
-    expect(detectLightMode({ DSH_CCTUI_BACKGROUND: '#fffff' })).toBe(false)
-    expect(detectLightMode({ DSH_CCTUI_BACKGROUND: '#fffffff' })).toBe(false)
+    expect(detectLightMode({ ALEGO_TUI_BACKGROUND: '#fffff' })).toBe(false)
+    expect(detectLightMode({ ALEGO_TUI_BACKGROUND: '#fffffff' })).toBe(false)
   })
 
   it('treats COLORFGBG as authoritative when present so it dominates the TERM_PROGRAM allow-list', async () => {
@@ -214,7 +233,7 @@ describe('detectLightMode', () => {
 describe('fromSkin', () => {
   // `fromSkin` closes over DEFAULT_THEME (which is env-derived), so we
   // must dynamic-import it after sterilizing env — otherwise an ambient
-  // DSH_CCTUI_THEME=light would flip the base palette and make these
+  // ALEGO_TUI_THEME=light would flip the base palette and make these
   // assertions order-dependent on the developer's shell.
 
   it('overrides banner colors', async () => {
@@ -394,11 +413,11 @@ describe('hasExplicitBackgroundSignal', () => {
 
     expect(hasExplicitBackgroundSignal({})).toBe(false)
     expect(hasExplicitBackgroundSignal({ TERM_PROGRAM: 'Apple_Terminal' })).toBe(false)
-    expect(hasExplicitBackgroundSignal({ DSH_CCTUI_THEME: 'dark' })).toBe(true)
-    expect(hasExplicitBackgroundSignal({ DSH_CCTUI_THEME: 'light' })).toBe(true)
-    expect(hasExplicitBackgroundSignal({ DSH_CCTUI_LIGHT: '1' })).toBe(true)
-    expect(hasExplicitBackgroundSignal({ DSH_CCTUI_LIGHT: 'off' })).toBe(true)
-    expect(hasExplicitBackgroundSignal({ DSH_CCTUI_BACKGROUND: '#1a1a1a' })).toBe(true)
+    expect(hasExplicitBackgroundSignal({ ALEGO_TUI_THEME: 'dark' })).toBe(true)
+    expect(hasExplicitBackgroundSignal({ ALEGO_TUI_THEME: 'light' })).toBe(true)
+    expect(hasExplicitBackgroundSignal({ ALEGO_TUI_LIGHT: '1' })).toBe(true)
+    expect(hasExplicitBackgroundSignal({ ALEGO_TUI_LIGHT: 'off' })).toBe(true)
+    expect(hasExplicitBackgroundSignal({ ALEGO_TUI_BACKGROUND: '#1a1a1a' })).toBe(true)
     expect(hasExplicitBackgroundSignal({ COLORFGBG: '0;15' })).toBe(true)
     expect(hasExplicitBackgroundSignal({ COLORFGBG: '15;0' })).toBe(true)
   })
@@ -408,12 +427,12 @@ describe('hasExplicitBackgroundSignal', () => {
 
     const cases: Record<string, string>[] = [
       {},
-      { DSH_CCTUI_THEME: 'dark' },
-      { DSH_CCTUI_THEME: 'light' },
-      { DSH_CCTUI_LIGHT: '1' },
-      { DSH_CCTUI_LIGHT: '0' },
-      { DSH_CCTUI_BACKGROUND: '#ffffff' },
-      { DSH_CCTUI_BACKGROUND: '#000' },
+      { ALEGO_TUI_THEME: 'dark' },
+      { ALEGO_TUI_THEME: 'light' },
+      { ALEGO_TUI_LIGHT: '1' },
+      { ALEGO_TUI_LIGHT: '0' },
+      { ALEGO_TUI_BACKGROUND: '#ffffff' },
+      { ALEGO_TUI_BACKGROUND: '#000' },
       { COLORFGBG: '0;15' },
       { COLORFGBG: '0;7' },
       { COLORFGBG: '15;0' },

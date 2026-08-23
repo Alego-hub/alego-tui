@@ -4,7 +4,7 @@
 The transcript's tool rows are the hardest part of the port to eyeball: every
 tool reaches `⏺ Tool(args)` / `⎿ result` through a different presentation card,
 and a regression in one of them is invisible while the other twenty look fine.
-This drives the REAL alego (from node_modules) with the real cctui plugin and a
+This drives the REAL alego (from node_modules) with the real tui plugin and a
 scripted LLM (test/e2e/probe-llm.mjs) that turns a `PROBE <tool> <json>` prompt
 into exactly that tool call — no network, no credentials, no model deciding to
 do something else — then replays the PTY through a terminal emulator and prints
@@ -186,7 +186,7 @@ def bootstrap() -> None:
     - id: probe-llm
       name: '{ROOT}/test/e2e/probe-llm.mjs'
 {SPY}
-    - id: cctui
+    - id: tui
       name: '{ROOT}/dist/plugin.js'
       config:
         provider: mock
@@ -203,9 +203,9 @@ class Session:
         env = dict(os.environ)
         env["ALEGO_HOME"] = str(HOME)
         env["NODE_ENV"] = "production"
-        env["DSH_CCTUI_INLINE"] = "1"
-        env["DSH_CCTUI_HOME"] = str(HOME / "cctui")
-        env.pop("DSH_CCTUI_THEME", None)
+        env["ALEGO_TUI_INLINE"] = "1"
+        env["ALEGO_TUI_HOME"] = str(HOME / "tui")
+        env.pop("ALEGO_TUI_THEME", None)
         cmd = [
             "node",
             str(ROOT / "node_modules" / "@singula-ai" / "alego" / "lib" / "bin.js"),

@@ -9,7 +9,7 @@
  * Hidden until the backend's init arrives — there is nothing to report
  * while "starting clawcodex…" still owns the status row.
  */
-import { Box, Text } from '@dsh-cctui/ink'
+import { Box, Text } from '@alego-tui/ink'
 import { useStore } from '@nanostores/react'
 import { memo } from 'react'
 
