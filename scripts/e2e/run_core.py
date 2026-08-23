@@ -206,8 +206,13 @@ class TuiSession:
             (HOME / f"e2e-{self.label}.transcript").write_bytes(bytes(self.transcript))
 
 
-def banner_is_blue(raw: str) -> bool:
-    """Every SGR truecolor run painting the wordmark/whale must be blue-dominant."""
+def banner_is_amber(raw: str) -> bool:
+    """Every SGR truecolor run painting the wordmark/brick must be amber-dominant.
+
+    Asserts COLOR, not glyphs: upstream once shipped a rebrand that changed the
+    ASCII art and kept the previous brand's palette, and a glyph-only check
+    passed it.
+    """
     i = raw.find("\u2588\u2588")  # first wordmark block glyph
     if i < 0:
         return False
@@ -216,7 +221,7 @@ def banner_is_blue(raw: str) -> bool:
     brand = [c for c in codes if max(c) - min(c) > 30]  # ignore greys/chrome
     if not brand:
         return False
-    return all(b > r and b > g for r, g, b in brand[:8])
+    return all(r > b and g > b for r, g, b in brand[:8])
 
 
 def phase1(failures: list[str]) -> None:
@@ -269,7 +274,7 @@ def phase1(failures: list[str]) -> None:
         ("p1 banner/composer rendered", PROMPT_GLYPH in flat),
         # Colors, not just glyphs: the banner regressed to a stale green palette
         # once because only the ART was asserted. Pin the shipped ocean ramp.
-        ("p1 banner painted in ocean blue", banner_is_blue(raw_text)),
+        ("p1 banner painted in Alego amber", banner_is_amber(raw_text)),
         ("p1 mock reply streamed", "MOCK-REPLY: hello harness" in flat),
         ("p1 approval prompt shown", "Yes" in flat and "bash" in flat),
         ("p1 approved tool ran to completion", "TOOL-STEP-DONE" in flat),

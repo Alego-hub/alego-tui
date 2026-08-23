@@ -1453,6 +1453,7 @@ export class HarnessGatewayClient extends GatewayClient {
           execute?: (
             agent: Agent,
             line: string,
+            images: readonly unknown[],
             signal: AbortSignal
           ) => Promise<{ result: { kind: string; text?: string } } | undefined>
         }
@@ -1462,8 +1463,10 @@ export class HarnessGatewayClient extends GatewayClient {
       throw new Error('commands unavailable')
     }
 
+    // `images` (position 3) carries composer attachments; the TUI does not
+    // admit image attachments into slash commands, so it is always empty.
     const normalized = line.startsWith('/') ? line : `/${line}`
-    const execution = await commands.execute(agent, normalized, new AbortController().signal)
+    const execution = await commands.execute(agent, normalized, [], new AbortController().signal)
 
     if (!execution) {
       throw new Error(`unknown command: ${normalized.split(/\s+/)[0] ?? ''}`)

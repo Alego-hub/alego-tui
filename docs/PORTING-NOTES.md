@@ -244,3 +244,36 @@ observed behavior instead of leaving it skipped.
 - `NOTICE.md` rewritten: dsh-ccTUI added as the direct upstream, the Ink fork credited under its
   real upstream path (`clawcodex-ink`), and a statement that alego-tui is an independent
   third-party plugin shipping none of Alego's artwork, per Alego's brand guidelines.
+
+## Alego stage 4 — packaging, launcher, end-to-end
+
+- **The one real API drift the compiler could not see.** Alego 0.1.1-rc.2 inserted a required
+  `images` parameter into `commands.execute(agent, line, images, signal)`; the port kept calling
+  the rc.7 three-argument form. `tsc` reported nothing, because soft-probed services are cast to
+  hand-written structural types — the compiler checks the call against *our fiction*, not the
+  real service. The PTY e2e caught it as a dead `/e2eprobe`.
+  Stage 2's "zero drift" claim was accurate about what tsc can see, and too broad as stated.
+- Audited all 17 soft-probed call sites against Alego's `.d.ts` after finding it. Exactly one was
+  wrong. Several real signatures gained *optional* trailing parameters (`tokenMeter.measure`
+  gained `requestHeader?`, `llm.resolveModelInfo` gained `signal?`), which shorter calls tolerate.
+- Added `src/harness/serviceContracts.ts`: type-only conformance assertions pinning each assumed
+  signature against Alego's own service types, so this class of drift fails `tsc` instead of
+  degrading at runtime. Verified both directions — clean as written, and it names the exact
+  mismatch ("Expected 4 or more, but got 3") when reverted to the old form.
+- **Type-level lesson:** the check must live in the CONSTRAINT.
+  `type S<Real, Needed> = Real extends Needed ? true : never` silently evaluates to `never`, and a
+  type alias of `never` is legal — so it reports nothing. `type S<Real extends Needed, Needed> =
+  Real` is what actually errors. The first version was written, looked right, and caught nothing.
+- Peer dependencies are now generated from the adapter's real import list rather than hand-kept
+  (9 → 16, the growth being the augmentation-only imports the conformance file needs).
+- CLI resolution: `@singula-ai/alego` is unpublished, so `alego` is usually not on PATH and
+  "npm install -g" is not advice we can give. `scripts/resolve-alego-cli.mjs` tries PATH, then the
+  link farm, then `$ALEGO_REPO`, and is shared by `bin/alego-tui.js` and `install.sh` (which reads
+  the argv one element per line, so paths with spaces survive; `mapfile` was avoided because
+  macOS ships bash 3.2).
+- `install.sh` builds before resolving, because `npm install`'s postinstall link step is what
+  makes the CLI findable.
+- Both e2e suites pass against real Alego: the core PTY suite (11 checks — conversation loop,
+  approval round-trip, diff card, command bridge, model switch, resume) and the installed-path
+  suite, which runs the real `alego plugin add` and confirms the profile manifest lists
+  `['@singula-ai/alego-base', 'alego-tui']`.
