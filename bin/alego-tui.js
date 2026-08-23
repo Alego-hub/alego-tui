@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-// Launcher: boots the alego profile that carries the alego-tui bundle.
+// Launcher: boots the Alego profile that carries the alego-tui bundle.
 // Pure JS on purpose — it runs before any build output exists and must give
 // actionable errors when the environment is missing pieces.
-import { spawnSync, spawn } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+import { resolveAlegoCli, ALEGO_CLI_HELP } from '../scripts/resolve-alego-cli.mjs'
 
 const PROFILE = process.env.ALEGO_TUI_PROFILE || 'alego-tui'
 const here = dirname(fileURLToPath(import.meta.url))
@@ -18,11 +20,10 @@ if (args.includes('--version') || args.includes('-V')) {
   process.exit(0)
 }
 
-const probe = spawnSync('alego', ['--version'], { encoding: 'utf8' })
+const cli = resolveAlegoCli()
 
-if (probe.error || probe.status !== 0) {
-  console.error('alego-tui: the `alego` CLI is not on PATH.')
-  console.error('Install deepseek-harness first, e.g.:  npm install -g @singula-ai/alego')
+if (!cli) {
+  console.error(ALEGO_CLI_HELP)
   process.exit(1)
 }
 
@@ -40,7 +41,8 @@ const env = { ...process.env }
 
 env.NODE_ENV ??= 'production'
 
-const child = spawn('alego', ['--profile', PROFILE, ...args], { env, stdio: 'inherit' })
+const [command, ...prefix] = cli
+const child = spawn(command, [...prefix, '--profile', PROFILE, ...args], { env, stdio: 'inherit' })
 
 child.on('exit', (code, signal) => {
   if (signal) {

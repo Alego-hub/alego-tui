@@ -1,31 +1,42 @@
 #!/usr/bin/env bash
-# Install alego-tui into a alego profile from this checkout.
+# Install alego-tui into an Alego profile from this checkout.
 #
-#   git clone https://github.com/agentforce314/alego-tui.git
+#   git clone https://github.com/Alego-hub/alego-tui.git
 #   cd alego-tui && ./install.sh
-#   alego --profile alego-tui    (or: ./bin/alego-tui.js)
+#   ./bin/alego-tui.js      (or: alego --profile alego-tui)
+#
+# Needs a local Alego checkout, since @singula-ai/* is not on npm yet. Place it
+# beside this repo (../alego) or export ALEGO_REPO=/path/to/alego.
 set -euo pipefail
 
 PROFILE="${ALEGO_TUI_PROFILE:-alego-tui}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
-
-if ! command -v alego >/dev/null 2>&1; then
-  echo "error: the alego CLI is not on PATH — install deepseek-harness first:" >&2
-  echo "  npm install -g @singula-ai/alego" >&2
-  exit 1
-fi
 
 if ! command -v npm >/dev/null 2>&1; then
   echo "error: npm is required to build the plugin" >&2
   exit 1
 fi
 
+# npm install runs the postinstall link step, which is what makes the Alego CLI
+# resolvable below — so build first, then resolve.
 echo "==> building alego-tui in $HERE"
 (cd "$HERE" && npm install && npm run build)
 
+echo "==> locating the alego CLI"
+ALEGO_CMD=()
+while IFS= read -r line; do
+  ALEGO_CMD+=("$line")
+done < <(node "$HERE/scripts/resolve-alego-cli.mjs")
+
+if [ ${#ALEGO_CMD[@]} -eq 0 ]; then
+  exit 1
+fi
+
+echo "    using: ${ALEGO_CMD[*]}"
+
 echo "==> installing into alego profile '$PROFILE'"
-alego plugin --profile "$PROFILE" add "$HERE"
+"${ALEGO_CMD[@]}" plugin --profile "$PROFILE" add "$HERE"
 
 echo
 echo "done. launch with:"
-echo "  alego --profile $PROFILE"
+echo "  $HERE/bin/alego-tui.js"

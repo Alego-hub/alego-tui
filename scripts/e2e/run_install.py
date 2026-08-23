@@ -27,7 +27,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 HOME = ROOT / ".alego-install-home"
 PATCH = HOME / "install.cordis.yml"
-DSH = ROOT / "node_modules" / "@singula-ai" / "alego" / "lib" / "bin.js"
+ALEGO_CLI = ROOT / "node_modules" / "@singula-ai" / "alego" / "lib" / "bin.js"
 PROMPT_GLYPH = "❯"
 
 
@@ -42,7 +42,7 @@ def install() -> None:
     env = dict(os.environ)
     env["ALEGO_HOME"] = str(HOME)
     r = sh(
-        ["node", str(DSH), "plugin", "--profile", "alego-tui", "add", str(ROOT)],
+        ["node", str(ALEGO_CLI), "plugin", "--profile", "alego-tui", "add", str(ROOT)],
         env=env,
         cwd=str(ROOT),
         capture_output=True,
@@ -79,7 +79,7 @@ def drive() -> list[str]:
     env["ALEGO_HOME"] = str(HOME)
     env["NODE_ENV"] = "production"
     env["ALEGO_TUI_INLINE"] = "1"
-    cmd = ["node", str(DSH), "--profile", "alego-tui", "--patch", str(PATCH)]
+    cmd = ["node", str(ALEGO_CLI), "--profile", "alego-tui", "--patch", str(PATCH)]
     master, slave = pty.openpty()
     fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 120, 0, 0))
     os.set_inheritable(slave, True)
