@@ -1,4 +1,4 @@
-import { withInkSuspended } from '@dsh-cctui/ink'
+import { withInkSuspended } from '@alego-tui/ink'
 
 import { launchClawcodexCommand } from '../../../lib/externalCli.js'
 import { runExternalSetup } from '../../setupHandoff.js'

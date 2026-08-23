@@ -5,7 +5,7 @@ export interface LaunchResult {
   error?: string
 }
 
-const resolveClawcodexBin = () => process.env.DSH_CCTUI_BIN?.trim() || 'clawcodex'
+const resolveClawcodexBin = () => process.env.ALEGO_TUI_BIN?.trim() || 'clawcodex'
 
 export const launchClawcodexCommand = (args: string[]): Promise<LaunchResult> =>
   new Promise(resolve => {

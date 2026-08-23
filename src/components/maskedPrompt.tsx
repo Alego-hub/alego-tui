@@ -1,4 +1,4 @@
-import { Box, Text } from '@dsh-cctui/ink'
+import { Box, Text } from '@alego-tui/ink'
 import { useState } from 'react'
 
 import type { Theme } from '../theme.js'

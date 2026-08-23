@@ -1,4 +1,4 @@
-import { Box, Text } from '@dsh-cctui/ink'
+import { Box, Text } from '@alego-tui/ink'
 import { memo, useState } from 'react'
 
 import { todoGlyph } from '../lib/todo.js'

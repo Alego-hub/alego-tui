@@ -2,7 +2,7 @@
 """Capture a faithful text screenshot of the TUI by replaying its PTY output
 through a real terminal emulator (pyte).
 
-Usage:  python3 scripts/capture-screenshot.py [--profile dsh-cctui] [--prompt "..."]
+Usage:  python3 scripts/capture-screenshot.py [--profile alego-tui] [--prompt "..."]
 
 Writes the rendered screen to stdout. Home paths are replaced with `~` so a
 capture can be pasted publicly.
@@ -30,9 +30,9 @@ COLS, ROWS = 100, 44
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--profile", default="dsh-cctui")
+    ap.add_argument("--profile", default="alego-tui")
     ap.add_argument("--prompt", default=None, help="send this prompt and wait for a reply")
-    ap.add_argument("--cwd", default=os.path.expanduser("~/workspace/dsh-ccTUI"))
+    ap.add_argument("--cwd", default=os.path.expanduser("~/workspace/alego-tui"))
     ap.add_argument("--wait", type=float, default=90.0)
     args = ap.parse_args()
 

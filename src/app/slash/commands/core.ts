@@ -1,4 +1,4 @@
-import { forceRedraw, type MouseTrackingMode } from '@dsh-cctui/ink'
+import { forceRedraw, type MouseTrackingMode } from '@alego-tui/ink'
 
 import { DASHBOARD_TUI_MODE, NO_CONFIRM_DESTRUCTIVE } from '../../../config/env.js'
 import { dailyFortune, randomFortune } from '../../../content/fortunes.js'
@@ -119,7 +119,7 @@ export const coreCommands: SlashCommand[] = [
 
   {
     aliases: ['exit'],
-    help: 'exit dsh-ccTUI',
+    help: 'exit alego-tui',
     name: 'quit',
     run: (_arg, ctx) => {
       // In the hosted dashboard chat there is no in-page restart path after
@@ -142,7 +142,7 @@ export const coreCommands: SlashCommand[] = [
   },
 
   {
-    help: 'update dsh-ccTUI to the latest version (exits TUI)',
+    help: 'update alego-tui to the latest version (exits TUI)',
     name: 'update',
     run: (_arg, ctx) => {
       if (DASHBOARD_TUI_MODE) {
@@ -398,7 +398,7 @@ export const coreCommands: SlashCommand[] = [
         if (text) {
           return sys(`copied ${text.length} characters`)
         } else {
-          return sys('clipboard copy failed — try DSH_CCTUI_FORCE_OSC52=1 to force the escape sequence')
+          return sys('clipboard copy failed — try ALEGO_TUI_FORCE_OSC52=1 to force the escape sequence')
         }
       }
 

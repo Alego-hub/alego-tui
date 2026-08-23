@@ -75,7 +75,7 @@ export interface SlashExecResponse {
 // ── /memory picker (memory_targets control) ─────────────────────────
 
 export interface MemoryTarget {
-  /** Secondary dim text — e.g. "Saved in ~/.dsh-cctui/DSH-CCTUI.md", "@-imported". */
+  /** Secondary dim text — e.g. "Saved in ~/.alego-tui/ALEGO-TUI.md", "@-imported". */
   description?: string
   label: string
   path: string

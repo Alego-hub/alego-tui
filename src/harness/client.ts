@@ -42,7 +42,7 @@ const PLUGIN_VERSION = (() => {
     try {
       const pkg = require(rel) as { name?: string; version?: string }
 
-      if (pkg.name === 'dsh-cctui' && pkg.version) {
+      if (pkg.name === 'alego-tui' && pkg.version) {
         return pkg.version
       }
     } catch {
@@ -447,12 +447,12 @@ export class HarnessGatewayClient extends GatewayClient {
   }
 
   private workingDir(): string {
-    return this.opts.cwd ?? process.env.DSH_CCTUI_WORKSPACE ?? process.env.DSH_CCTUI_CWD ?? process.cwd()
+    return this.opts.cwd ?? process.env.ALEGO_TUI_WORKSPACE ?? process.env.ALEGO_TUI_CWD ?? process.cwd()
   }
 
   private async createAgent(fixedSessionId?: string): Promise<AgentHandle> {
     const route = this.resolveRoute()
-    const sessionId = SessionId(fixedSessionId ?? `cctui-${randomUUID()}`)
+    const sessionId = SessionId(fixedSessionId ?? `tui-${randomUUID()}`)
 
     this.selection = { assembled: undefined, current: route }
 

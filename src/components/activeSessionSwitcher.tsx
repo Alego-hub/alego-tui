@@ -1,4 +1,4 @@
-import { Box, Text, useInput, useStdout } from '@dsh-cctui/ink'
+import { Box, Text, useInput, useStdout } from '@alego-tui/ink'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { TUI_SESSION_MODEL_FLAG } from '../domain/slash.js'

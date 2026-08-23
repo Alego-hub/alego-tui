@@ -1,5 +1,5 @@
-# Bundle layer applied when an alego profile lists dsh-cctui in its bundles
-# (alego plugin --profile <p> add dsh-cctui). Composes over @singula-ai/alego-base.
+# Bundle layer applied when an alego profile lists alego-tui in its bundles
+# (alego plugin --profile <p> add alego-tui). Composes over @singula-ai/alego-base.
 #
 # Kept deliberately small: the TUI mounts as one row and creates its own agent
 # at runtime; base-bundle tool/service rows stay untouched.
@@ -9,6 +9,6 @@
   disabled: true
 
 - insert:
-    - id: cctui
-      name: dsh-cctui
+    - id: tui
+      name: alego-tui
       config: {}

@@ -1,6 +1,6 @@
-// FPS counter overlay (DSH_CCTUI_FPS=1). Zero-cost when disabled.
+// FPS counter overlay (ALEGO_TUI_FPS=1). Zero-cost when disabled.
 
-import { Text } from '@dsh-cctui/ink'
+import { Text } from '@alego-tui/ink'
 import { useStore } from '@nanostores/react'
 
 import { SHOW_FPS } from '../config/env.js'

@@ -10,7 +10,7 @@
  * not — a backend with no price table publishes only the latter. The turn
  * count is the server's `session_turns` odometer.
  */
-import { stringWidth } from '@dsh-cctui/ink'
+import { stringWidth } from '@alego-tui/ink'
 
 import { shortCwd } from '../domain/paths.js'
 import type { CostSnapshot } from '../gatewayTypes.js'

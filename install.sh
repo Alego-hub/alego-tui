@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Install dsh-cctui into a alego profile from this checkout.
+# Install alego-tui into a alego profile from this checkout.
 #
-#   git clone https://github.com/agentforce314/dsh-ccTUI.git
-#   cd dsh-ccTUI && ./install.sh
-#   alego --profile dsh-cctui    (or: ./bin/dsh-cctui.js)
+#   git clone https://github.com/agentforce314/alego-tui.git
+#   cd alego-tui && ./install.sh
+#   alego --profile alego-tui    (or: ./bin/alego-tui.js)
 set -euo pipefail
 
-PROFILE="${DSH_CCTUI_PROFILE:-dsh-cctui}"
+PROFILE="${ALEGO_TUI_PROFILE:-alego-tui}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
 if ! command -v alego >/dev/null 2>&1; then
@@ -20,7 +20,7 @@ if ! command -v npm >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "==> building dsh-cctui in $HERE"
+echo "==> building alego-tui in $HERE"
 (cd "$HERE" && npm install && npm run build)
 
 echo "==> installing into alego profile '$PROFILE'"

@@ -1161,7 +1161,7 @@ describe('createGatewayEventHandler', () => {
       const shelf = appended.find(msg => msg.tools?.length)
 
       expect(shelf?.tools?.[0]).toContain('Bash(sleep 30)')
-      expect(shelf?.tools?.[0]).toContain('Interrupted · What should dsh-ccTUI do instead?')
+      expect(shelf?.tools?.[0]).toContain('Interrupted · What should alego-tui do instead?')
       // …and the note is not ALSO the reply, three lines below itself
       expect(appended.filter(msg => /\S/.test(msg.text) && msg.text.includes('Interrupted ·'))).toHaveLength(0)
 

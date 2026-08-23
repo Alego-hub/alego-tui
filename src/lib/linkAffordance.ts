@@ -1,4 +1,4 @@
-import { supportsHyperlinks } from '@dsh-cctui/ink'
+import { supportsHyperlinks } from '@alego-tui/ink'
 
 import { INLINE_MODE } from '../config/env.js'
 
@@ -42,7 +42,7 @@ export function linkOpenHotkey(
     // OSC 8 terminals open our hyperlink metadata on Cmd/Ctrl+click in both
     // modes (xterm.js and iTerm2 handle it themselves even with mouse
     // tracking armed — the double-open dance the renderer's click dispatcher
-    // defers to in @dsh-cctui/ink's components/App.tsx). They also render
+    // defers to in @alego-tui/ink's components/App.tsx). They also render
     // their own hover affordance (underline/tooltip while the modifier is
     // held), so tell the user that's how to spot a clickable link.
     const mod = isMac ? 'Cmd' : 'Ctrl'

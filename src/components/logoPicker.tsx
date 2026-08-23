@@ -1,4 +1,4 @@
-import { Box, Text, useInput } from '@dsh-cctui/ink'
+import { Box, Text, useInput } from '@alego-tui/ink'
 import { useState } from 'react'
 
 import { wordmarkGradient } from '../banner.js'
@@ -80,7 +80,7 @@ export function LogoPicker({ current, onClose, onSelect, t }: LogoPickerProps) {
 }
 
 interface LogoPickerProps {
-  /** The active palette name ('' = default whale). */
+  /** The active palette name ('' = default brick). */
   current: string
   onClose: () => void
   onSelect: (name: LogoPaletteName) => void

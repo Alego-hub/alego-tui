@@ -779,7 +779,7 @@ describe('HarnessGatewayClient', () => {
 
     // The requested id is freshly generated; the binding then adopts the
     // agent's own id (identical in a real harness, distinct in this fake).
-    expect(String(createOpts.sessionId)).toMatch(/^cctui-/)
+    expect(String(createOpts.sessionId)).toMatch(/^tui-/)
     expect(res.session_id).toBe(String(w.agent.id))
   })
 
@@ -1213,9 +1213,9 @@ describe('HarnessGatewayClient', () => {
   })
 
   it('persists the /logo palette into the app config (not clawcodex\'s)', async () => {
-    const home = mkdtempSync(join(tmpdir(), 'dsh-cctui-logo-rpc-'))
+    const home = mkdtempSync(join(tmpdir(), 'alego-tui-logo-rpc-'))
 
-    vi.stubEnv('DSH_CCTUI_HOME', home)
+    vi.stubEnv('ALEGO_TUI_HOME', home)
 
     try {
       const w = makeWorld()

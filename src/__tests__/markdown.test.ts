@@ -1,6 +1,6 @@
 import { PassThrough } from 'stream'
 
-import { Box, renderSync } from '@dsh-cctui/ink'
+import { Box, renderSync } from '@alego-tui/ink'
 import React from 'react'
 import { describe, expect, it } from 'vitest'
 
@@ -460,7 +460,7 @@ describe('Md link labels', () => {
 
 describe('renderTable CJK width alignment', () => {
   it('column starts share the same display offset across CJK rows', async () => {
-    const { stringWidth } = await import('@dsh-cctui/ink')
+    const { stringWidth } = await import('@alego-tui/ink')
 
     const md = [
       '| 配置 | Config | 状态 |',

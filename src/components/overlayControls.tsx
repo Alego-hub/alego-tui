@@ -1,4 +1,4 @@
-import { Text, useInput } from '@dsh-cctui/ink'
+import { Text, useInput } from '@alego-tui/ink'
 
 import type { Theme } from '../theme.js'
 

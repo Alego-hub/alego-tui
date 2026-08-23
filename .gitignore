@@ -2,7 +2,7 @@ reference_projects/
 node_modules/
 /dist/
 /lib/
-packages/dsh-cctui-ink/dist/
+packages/alego-tui-ink/dist/
 *.tsbuildinfo
 .alego-dev-home/
 *.log

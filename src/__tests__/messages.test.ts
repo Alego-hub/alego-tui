@@ -1,6 +1,6 @@
 import { PassThrough } from 'stream'
 
-import { renderSync } from '@dsh-cctui/ink'
+import { renderSync } from '@alego-tui/ink'
 import React from 'react'
 import { describe, expect, it } from 'vitest'
 

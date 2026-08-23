@@ -1,4 +1,4 @@
-import { stringWidth, wrapAnsi } from '@dsh-cctui/ink'
+import { stringWidth, wrapAnsi } from '@alego-tui/ink'
 
 import type { Role } from '../types.js'
 

@@ -1,4 +1,4 @@
-import type { MouseTrackingMode, ScrollBoxHandle } from '@dsh-cctui/ink'
+import type { MouseTrackingMode, ScrollBoxHandle } from '@alego-tui/ink'
 import type { MutableRefObject, ReactNode, RefObject, SetStateAction } from 'react'
 
 import type { PasteEvent } from '../components/textInput.js'

@@ -1,18 +1,18 @@
 {
-  "name": "dsh-cctui",
-  "version": "0.3.18",
-  "description": "Claude-Code-style terminal UI for deepseek-harness, ported from clawcodex ui-tui",
+  "name": "alego-tui",
+  "version": "0.1.0",
+  "description": "Claude Code style terminal UI for the Alego agent harness",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/agentforce314/dsh-ccTUI.git"
+    "url": "git+https://github.com/Alego-hub/alego-tui.git"
   },
   "type": "module",
   "engines": {
     "node": ">=22.19"
   },
   "scripts": {
-    "build:ink": "npm run build --prefix packages/dsh-cctui-ink",
+    "build:ink": "npm run build --prefix packages/alego-tui-ink",
     "dev": "npm run build:ink && tsx --watch src/entry.tsx",
     "start": "tsx src/entry.tsx",
     "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -30,7 +30,7 @@
     "link:alego": "node scripts/link-alego.mjs"
   },
   "dependencies": {
-    "@dsh-cctui/ink": "file:./packages/dsh-cctui-ink",
+    "@alego-tui/ink": "file:./packages/alego-tui-ink",
     "@nanostores/react": "^1.1.0",
     "diff": "^9.0.0",
     "highlight.js": "^11.11.1",
@@ -76,7 +76,7 @@
     "@singula-ai/schemastery": "^3.18.1"
   },
   "bin": {
-    "dsh-cctui": "./bin/dsh-cctui.js"
+    "alego-tui": "./bin/alego-tui.js"
   },
   "peerDependenciesMeta": {
     "@singula-ai/alego-agent": {

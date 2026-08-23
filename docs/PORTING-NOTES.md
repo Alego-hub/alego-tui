@@ -213,3 +213,34 @@ observed behavior instead of leaving it skipped.
 - zsh lesson for anyone scripting the remaining renames: unquoted `$var` is **not** word-split,
   so `for f in $files` passes the entire newline-joined list as one argument. Use
   `... | while read -r f`.
+
+## Alego stage 3 — rebrand to alego-tui (v0.1.0)
+
+- Identifier sweep: package/plugin/bin/profile `dsh-cctui` → `alego-tui`; env prefix
+  `DSH_CCTUI_*` → `ALEGO_TUI_*`; data dir `~/.dsh-cctui` → `~/.alego-tui` (`ALEGO_TUI_HOME`);
+  memory file `DSH-CCTUI.md` → `ALEGO-TUI.md`; row id `cctui` → `tui`; session id prefix
+  `cctui-` → `tui-`; `mountCcTui` → `mountAlegoTui`.
+- Ink fork renamed a second time: `packages/dsh-cctui-ink` → `packages/alego-tui-ink`,
+  `@dsh-cctui/ink` → `@alego-tui/ink` (114 import sites, the esbuild alias, the ambient module
+  declaration in `src/types/alego-tui-ink.d.ts`, and the `file:` dependency). The lockfile had to
+  be regenerated — npm keeps the old package name and path keyed in `package-lock.json`, and a
+  plain `npm install` leaves an empty `node_modules/@alego-tui/`.
+- Version reset to **0.1.0**. Inheriting dsh-ccTUI's 0.3.18 would claim a release history this
+  product does not have.
+- Brand: ALEGO-TUI wordmark in the same ANSI-shadow glyph set (71 cols, uniform). The whale
+  mascot became a **three-stud LEGO brick** — Alego is "AI agent LEGO blocks" and its favicon is
+  a brick. New `amber` palette anchored on Alego's **#F5A524** at stop 3, now
+  `DEFAULT_LOGO_PALETTE`; `ocean` stays selectable and demotes to a plain label. Theme brand hue
+  dark `#F5A524`, light `#A8650E`, shimmer band recolored to match. Tagline reads "for Alego".
+- Light hue is not the brand hue, deliberately: `#F5A524` on white is **2.04:1**, well under AA.
+  `#A8650E` (gradient stop 5) measures **4.63:1**.
+- The eight tests that failed were all brand assertions — which is what they are for (the v0.2.1
+  lesson: a rebrand that changed only glyphs once shipped with the old palette). Updated rather
+  than deleted, and the default-banner check flipped from blue-dominant to amber-dominant.
+- Strengthened `LIGHT_THEME` guard #11300 while here. It blacklisted four bright-yellow hexes,
+  which was adequate while the brand was blue; the rebrand moved the brand hue into exactly that
+  family, so it now measures WCAG contrast on white instead. Verified it has teeth: the raw brand
+  amber fails it.
+- `NOTICE.md` rewritten: dsh-ccTUI added as the direct upstream, the Ink fork credited under its
+  real upstream path (`clawcodex-ink`), and a statement that alego-tui is an independent
+  third-party plugin shipping none of Alego's artwork, per Alego's brand guidelines.

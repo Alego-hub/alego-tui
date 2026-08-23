@@ -174,8 +174,8 @@ function circularDistance(a: number, b: number): number {
   return Math.min(distance, 1 - distance)
 }
 
-// Mirrors @dsh-cctui/ink's colorize.ts. Keep local: app code compiles from
-// ui-tui/src, while @dsh-cctui/ink is bundled separately from packages/.
+// Mirrors @alego-tui/ink's colorize.ts. Keep local: app code compiles from
+// ui-tui/src, while @alego-tui/ink is bundled separately from packages/.
 function richEightBitColorNumber(red: number, green: number, blue: number): number {
   const [, saturation, lightness] = rgbToHsl(red, green, blue)
 
@@ -250,8 +250,8 @@ function normalizeAnsiForeground(color: string): string {
 // ── Defaults ─────────────────────────────────────────────────────────
 
 const BRAND: ThemeBrand = {
-  name: 'dsh-ccTUI',
-  icon: '🐳',
+  name: 'alego-tui',
+  icon: '🧱',
   prompt: '❯',
   welcome: 'Type your message or /help for commands.',
   goodbye: 'Goodbye!',
@@ -269,10 +269,10 @@ const cleanPromptSymbol = (s: string | undefined, fallback: string) => {
 
 export const DARK_THEME: Theme = {
   color: {
-    // DeepSeek palette: the brand blue #4D6BFE is the only brand hue; all
+    // Alego palette: the brand amber #F5A524 is the only brand hue; all
     // secondary text recedes to neutral grays so the blue draws focus.
-    primary: '#4D6BFE',
-    accent: '#4D6BFE',
+    primary: '#F5A524',
+    accent: '#F5A524',
     border: '#505050',
     text: '#FFFFFF',
     muted: 'rgb(153,153,153)',
@@ -305,7 +305,7 @@ export const DARK_THEME: Theme = {
     // visual contrast" (utils/theme.ts).
     userMessageBackground: 'rgb(55,55,55)',
 
-    claudeShimmer: 'rgb(150,180,255)',
+    claudeShimmer: 'rgb(252,205,108)',
     subtle: 'rgb(80,80,80)',
     planMode: 'rgb(72,150,140)',
     autoAccept: 'rgb(175,135,255)',
@@ -334,16 +334,17 @@ export const DARK_THEME: Theme = {
 // cleanly (#11300).
 export const LIGHT_THEME: Theme = {
   color: {
-    // A deeper blue than the dark theme's so the brand hue keeps contrast on white.
-    primary: '#3A57E8',
-    accent: '#3A57E8',
+    // A deeper amber than the dark theme's so the brand hue keeps contrast on
+    // white (4.6:1 against #FFFFFF; #F5A524 itself is only 1.9:1).
+    primary: '#A8650E',
+    accent: '#A8650E',
     border: '#AFAFAF',
     text: '#000000',
     muted: '#666666',
     completionBg: '#F5F5F5',
-    completionCurrentBg: mix('#F5F5F5', '#3A57E8', 0.25),
+    completionCurrentBg: mix('#F5F5F5', '#A8650E', 0.25),
     completionMetaBg: '#F5F5F5',
-    completionMetaCurrentBg: mix('#F5F5F5', '#3A57E8', 0.25),
+    completionMetaCurrentBg: mix('#F5F5F5', '#A8650E', 0.25),
 
     label: '#666666',
     ok: '#2C7A39',
@@ -367,7 +368,7 @@ export const LIGHT_THEME: Theme = {
     // optimal contrast" (utils/theme.ts).
     userMessageBackground: 'rgb(240,240,240)',
 
-    claudeShimmer: 'rgb(105,140,250)',
+    claudeShimmer: 'rgb(214,134,20)',
     subtle: 'rgb(175,175,175)',
     planMode: 'rgb(0,102,102)',
     autoAccept: 'rgb(135,0,255)',
@@ -395,13 +396,13 @@ const FALSE_RE = /^(?:0|false|no|off)$/
 
 // TERM_PROGRAM fallback allow-list for terminals whose default profile is
 // light and which may not expose COLORFGBG. This currently includes Apple
-// Terminal. Explicit DSH_CCTUI_THEME / COLORFGBG signals above still win,
+// Terminal. Explicit ALEGO_TUI_THEME / COLORFGBG signals above still win,
 // so dark Apple Terminal profiles that advertise a dark background stay dark.
 const LIGHT_DEFAULT_TERM_PROGRAMS = new Set<string>(['Apple_Terminal'])
 
 // Best-effort RGB → luminance check.  Currently only accepts a 3- or
 // 6-digit hex value (with or without a leading `#`); the env var name
-// `DSH_CCTUI_BACKGROUND` is intentionally generic so a future OSC11
+// `ALEGO_TUI_BACKGROUND` is intentionally generic so a future OSC11
 // query helper can cache its answer there too, but additional formats
 // (rgb()/hsl()/named colours) would need explicit parsing here first.
 const LUMA_LIGHT_THRESHOLD = 0.6
@@ -438,12 +439,12 @@ function backgroundLuminance(raw: string): null | number {
 
 // Pick light vs dark with ordered, explainable signals (#11300):
 //
-//   1. `DSH_CCTUI_LIGHT` boolean — `1`/`true`/`yes`/`on` → light;
+//   1. `ALEGO_TUI_LIGHT` boolean — `1`/`true`/`yes`/`on` → light;
 //      `0`/`false`/`no`/`off` → dark.  Either explicit value wins
 //      regardless of any later signal.
-//   2. `DSH_CCTUI_THEME` named override — `light` / `dark` win over
+//   2. `ALEGO_TUI_THEME` named override — `light` / `dark` win over
 //      every signal below.
-//   3. `DSH_CCTUI_BACKGROUND` hex hint (3- or 6-digit) — luminance
+//   3. `ALEGO_TUI_BACKGROUND` hex hint (3- or 6-digit) — luminance
 //      ≥ LUMA_LIGHT_THRESHOLD → light.
 //   4. `COLORFGBG` last field — XFCE / rxvt / Terminal.app emit
 //      slot 7 or 15 on light profiles; 0–15 ranges are otherwise
@@ -459,7 +460,7 @@ export function detectLightMode(
   // precedence rule even though the production allow-list is empty.
   lightDefaultTermPrograms: ReadonlySet<string> = LIGHT_DEFAULT_TERM_PROGRAMS
 ): boolean {
-  const lightFlag = (env.DSH_CCTUI_LIGHT ?? '').trim().toLowerCase()
+  const lightFlag = (env.ALEGO_TUI_LIGHT ?? '').trim().toLowerCase()
 
   if (TRUE_RE.test(lightFlag)) {
     return true
@@ -469,7 +470,7 @@ export function detectLightMode(
     return false
   }
 
-  const themeFlag = (env.DSH_CCTUI_THEME ?? '').trim().toLowerCase()
+  const themeFlag = (env.ALEGO_TUI_THEME ?? '').trim().toLowerCase()
 
   if (themeFlag === 'light') {
     return true
@@ -479,7 +480,7 @@ export function detectLightMode(
     return false
   }
 
-  const bgHint = backgroundLuminance(env.DSH_CCTUI_BACKGROUND ?? '')
+  const bgHint = backgroundLuminance(env.ALEGO_TUI_BACKGROUND ?? '')
 
   if (bgHint !== null) {
     return bgHint >= LUMA_LIGHT_THRESHOLD
@@ -555,19 +556,19 @@ export function normalizeThemeForAnsiLightTerminal(
  *  so the auto-detection defers to them. Mirrors detectLightMode()'s precedence
  *  for everything above the TERM_PROGRAM fallback. */
 export function hasExplicitBackgroundSignal(env: NodeJS.ProcessEnv = process.env): boolean {
-  const lightFlag = (env.DSH_CCTUI_LIGHT ?? '').trim().toLowerCase()
+  const lightFlag = (env.ALEGO_TUI_LIGHT ?? '').trim().toLowerCase()
 
   if (TRUE_RE.test(lightFlag) || FALSE_RE.test(lightFlag)) {
     return true
   }
 
-  const themeFlag = (env.DSH_CCTUI_THEME ?? '').trim().toLowerCase()
+  const themeFlag = (env.ALEGO_TUI_THEME ?? '').trim().toLowerCase()
 
   if (themeFlag === 'light' || themeFlag === 'dark') {
     return true
   }
 
-  if (backgroundLuminance(env.DSH_CCTUI_BACKGROUND ?? '') !== null) {
+  if (backgroundLuminance(env.ALEGO_TUI_BACKGROUND ?? '') !== null) {
     return true
   }
 

@@ -420,7 +420,7 @@ class TurnController {
     // the redirect instead of a bare "[interrupted]" tag. It is the SAME
     // string on the killed tool's own `⎿` row, which is where upstream puts
     // it too.
-    const interruptNote = 'Interrupted · What should dsh-ccTUI do instead?'
+    const interruptNote = 'Interrupted · What should alego-tui do instead?'
 
     // A tool still running when Esc lands had no completion event and would
     // vanish with the turn — losing the one row that says what was cut off

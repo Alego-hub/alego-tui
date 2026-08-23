@@ -1,5 +1,5 @@
-import type { InputEvent, Key } from '@dsh-cctui/ink'
-import * as Ink from '@dsh-cctui/ink'
+import type { InputEvent, Key } from '@alego-tui/ink'
+import * as Ink from '@alego-tui/ink'
 import { type MutableRefObject, useEffect, useMemo, useRef, useState } from 'react'
 
 import { setInputSelection } from '../app/inputSelectionStore.js'
@@ -398,7 +398,7 @@ export function supportsFastEchoTerminal(env: NodeJS.ProcessEnv = process.env): 
   // stale paints at soft-wrap boundaries on tall/narrow viewports. Keep this
   // off by default in Termux mode; allow explicit opt-in for local debugging.
   if (isTermuxTuiMode(env)) {
-    const override = String(env.DSH_CCTUI_TERMUX_FAST_ECHO ?? '')
+    const override = String(env.ALEGO_TUI_TERMUX_FAST_ECHO ?? '')
       .trim()
       .toLowerCase()
 

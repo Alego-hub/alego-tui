@@ -1,4 +1,4 @@
-import { stringWidth } from '@dsh-cctui/ink'
+import { stringWidth } from '@alego-tui/ink'
 import { describe, expect, it } from 'vitest'
 
 import {
