@@ -1,148 +1,157 @@
-# dsh-ccTUI — Staged Porting Plan
+# alego-tui — Port Plan
 
-Goal: port the **clawcodex `ui-tui`** TypeScript terminal UI (Claude-Code-style look, feel, and
-interactions) to a **deepseek-harness plugin**, using **dsh-TUI** as the packaging/integration
-skeleton reference.
+Goal: turn this checkout — a clone of [dsh-ccTUI](https://github.com/agentforce314/dsh-ccTUI),
+a Claude-Code-style terminal UI plugin for **deepseek-harness 0.1.0-rc.7** — into **alego-tui**,
+the same TUI running as a plugin for the [Alego](https://github.com/singula-ai/alego) agent
+harness (0.1.1-rc.2).
 
-Reference material (gitignored, vendored locally under `reference_projects/`):
+Plugin authoring follows Alego's own tutorial chain: a plugin is a TypeScript module exporting
+`apply(ctx)`, distributed as a **bundle** (`package.json` → `alego.bundle.patch`) and installed
+into a **profile** with `alego plugin --profile <name> add <checkout>`.
+See [Your first plugin](https://github.com/singula-ai/alego/blob/main/docs/user/develop/basic/index.md)
+and [Package and install a plugin](https://github.com/singula-ai/alego/blob/main/docs/user/develop/basic/publish.md).
 
-| Project | Role |
-|---|---|
-| `reference_projects/clawcodex/ui-tui` | The TUI to port: ~41k LOC React app + ~29k LOC forked Ink renderer (`packages/dsh-cctui-ink`). MIT. |
-| `reference_projects/dsh-TUI` | A proven claude-code-style TUI plugin for deepseek-harness; we borrow its packaging skeleton and integration patterns. MIT. |
-| `reference_projects/deepseek-harness` | The harness itself (docs + source). Published on npm as `@deepseek-ai/*@0.1.0-rc.7`. |
+## What kind of port this is
 
-## Core architectural insight
+Alego is a **rebranded fork of deepseek-harness**, not a different system: its first two commits
+import the harness source and rename it. So the port is not an architectural rewrite. It is three
+independent axes of change, each of which can land green on its own:
 
-The clawcodex TUI has exactly **one backend seam**: `src/gatewayClient.ts` (~2.9k LOC). It spawns
-the Python backend as a subprocess and translates NDJSON into an app-facing contract:
+| Axis | What changes | Risk |
+|---|---|---|
+| **1. Dependency retarget** | `@deepseek-ai/dsh-*` → `@singula-ai/alego-*`, plus a version bump 0.1.0-rc.7 → 0.1.1-rc.2 | API drift across the bump |
+| **2. Product rebrand** | `dsh-cctui` → `alego-tui` identifiers, env vars, data dir, wordmark, palette, strings | Wide but mechanical (~130 files) |
+| **3. Toolchain** | Alego is **unpublished on npm** — deps must resolve from a local checkout | Novel; no upstream precedent |
 
-- an `EventEmitter` emitting a **44-member `GatewayEvent` union** (`message.delta`, `tool.start`,
-  `approval.request`, …) defined in `src/gatewayTypes.ts`, and
-- a `request(method, params)` promise RPC surface (~75 dotted methods: `prompt.submit`,
-  `session.list`, `approval.respond`, …) where **unhandled methods gracefully resolve `{}`**.
+Axis 1 is the only one with genuine unknowns, and reconnaissance shows it is small (below).
 
-Everything above that seam (157 non-test files) is backend-agnostic. Therefore the port is:
+## Why axis 1 is small: the adapter surface
 
-1. **Copy the app + the Ink fork wholesale** (preserving look/feel/interactions by construction).
-2. **Replace only the gateway client internals** with an in-process implementation over
-   deepseek-harness services (`ctx.agents`, `session/event`, `approval/request` waterfall,
-   `ctx.userQuestions`, `ctx.commands`, `ctx.sessionPersistence`, …). The graceful-degradation
-   design means the TUI runs early and features light up RPC-by-RPC.
-3. **Package as a cordis bundle plugin** (`package.json` → `"dsh": {"bundle": {"patch":
-   "./cordis.patch.yml"}}`), installable with `dsh plugin --profile <p> add <pkg>` and launched
-   with `dsh --profile <p>`, following dsh-TUI's proven skeleton (peerDeps on `@deepseek-ai/*`,
-   adapter boundary, exit funnel, `NODE_ENV=production` for React).
+The app has exactly one backend seam, `src/harness/` (2231 LOC across three files), and it is the
+only directory allowed to import harness packages — enforced by `npm run verify:boundary`.
+Everything above it (~68k LOC app + ~29k vendored Ink fork) is backend-agnostic and does not
+change at all in axis 1.
 
-The full event/RPC mapping is in [ARCHITECTURE.md](./ARCHITECTURE.md).
+Within that seam, the surface that must exist in Alego is remarkably small. **Value imports** —
+the only things that must exist at runtime — number four:
 
-## Working agreements
+| Symbol | From | Verified in Alego 0.1.1-rc.2 |
+|---|---|---|
+| `Schema` | `@singula-ai/schemastery` | yes |
+| `installModelSelection` | `@singula-ai/alego-agent` | `model-selection.d.ts:35`, signature unchanged |
+| `SessionId` | `@singula-ai/alego-session` | yes |
+| `createUserMessage` | `@singula-ai/alego-llm` | `message.d.ts:171` |
 
-- Each stage: implement → test → PR → merge → next stage. Branch names `stage-N-<slug>`.
-- English is the project language (code, docs, commits, UI strings).
-- Tests per stage: `tsc --noEmit` + `vitest run` (ported suites) and, from Stage 4 on, scripted
-  end-to-end boots of the real harness (`@deepseek-ai/dsh` rc.7) with a **scripted LLM plugin**
-  (no API key exists in dev/CI; the mock replays canned deltas/tool calls).
-- Features whose backend doesn't exist in the harness stay as gracefully-degrading stubs:
-  billing/credits, voice, pets, browser progress, worktree exit flow, rollback. The UI code
-  remains; the RPCs resolve `{}` / events never fire.
-- Provenance: clawcodex and dsh-TUI are MIT; attribution kept in `NOTICE.md`.
+Everything else is `import type` and erases at build time. One service is a hard dependency
+(`inject = ['agents']`); the events the client subscribes to — `session/event`, `agent/status`,
+`approval/request`, `subagent/start`, `subagent/end` — all exist in Alego with matching payloads.
+
+Every *other* service is soft-probed:
+
+```ts
+const meter = this.ctx.get('tokenMeter') as { measure?: (...) => ... } | undefined
+```
+
+`ctx.get(name)` with a structural inline type and optional chaining at every call site. This is
+the port's safety net, and it is deliberate: a service that drifted, moved, or vanished in Alego
+degrades that one feature instead of failing the boot. Thirteen services are consumed this way
+(`agentDefaultModel`, `approval`, `commands`, `llm`, `loader`, `planMode`, `sessionPersistence`,
+`sessionProjectionCache`, `sessionTitle`, `tokenMeter`, `tools`, `userQuestions`, and the
+subagent runtime).
+
+**Consequence for the plan:** the compiler is the drift detector. After the mechanical rename,
+`tsc --noEmit` against the real Alego type definitions reports precisely what the version bump
+broke — nothing else needs auditing up front.
+
+## Why axis 3 needs a new mechanism
+
+`@singula-ai/*` is not published to npm (every `npm view` returns 404). dsh-ccTUI could simply
+declare `@deepseek-ai/*` devDependencies and let npm install them; alego-tui cannot.
+
+Alego is a pnpm workspace in which each package carries its own `node_modules/@singula-ai/`
+symlinks to its workspace peers. That means a **symlink farm** — linking the packages we need
+from a local Alego checkout into `node_modules/@singula-ai/` — resolves completely and
+consistently, peers included. Verified: linking `packages/core/agent` and importing it returns a
+live `installModelSelection` function.
+
+So axis 3 is `scripts/link-alego.mjs`: locate the Alego checkout (`ALEGO_REPO`, else a sibling
+search), map workspace package names to directories, and link what we need. It runs from
+`postinstall` and from `install.sh`, and it fails with an actionable message when no checkout is
+found.
+
+This also settles distribution. The bundle keeps `@singula-ai/*` **external** in the esbuild
+output — never bundled — so cordis service identities and `instanceof` checks stay unified with
+the host process. Node resolves them from the linked checkout at load time, exactly as
+dsh-ccTUI's bundle resolved `@deepseek-ai/*`.
+
+When Alego publishes to npm, this stage collapses into ordinary `dependencies` and the link
+script becomes a dev convenience. The plugin code does not change.
 
 ## Stages
 
-### Stage 1 — Plan & scaffolding (this PR)
-Deliverables: `docs/PLAN.md`, `docs/ARCHITECTURE.md`, `README.md`, `LICENSE`, `NOTICE.md`,
-`.gitignore`.
-Acceptance: docs merged to `main`.
+Each stage: implement → typecheck + test → PR → merge. Branches `stage-N-<slug>`.
 
-### Stage 2 — Toolchain + vendored Ink fork
-- Root `package.json` (`dsh-cctui`, ESM, React 19, `file:` dep on the fork), `tsconfig.json`,
-  `vitest.config.ts`, CI workflow (typecheck + vitest).
-- Vendor `packages/dsh-cctui-ink` unchanged (esbuild build, root `index.js` shims).
-- Acceptance: fork builds; its own unit tests pass; a headless `renderSync` smoke test renders
-  Box/Text into a fake stdout; CI green.
+### Stage 1 — Port plan (this PR)
+Rewrite `docs/PLAN.md` for the Alego port; preserve the dsh-ccTUI lineage below.
+**Acceptance:** docs merged.
 
-### Stage 3 — App source copy compiles; unit suite green (null gateway)
-- Copy `src/` app + tests from ui-tui. Keep `gatewayTypes.ts` verbatim (it is the contract).
-- Replace `gatewayClient.ts` with the same class surface backed by a **null backend** (no
-  subprocess; RPCs resolve `{}`), keeping `SLASHES` catalog and pure helpers.
-- Adapt/skip subprocess-specific tests with a documented list; everything else must pass.
-- Acceptance: `tsc --noEmit` green; `vitest run` green; headless mount of `AppLayout` renders the
-  banner/composer.
+### Stage 2 — Retarget the harness dependency to Alego
+- `scripts/link-alego.mjs` + `postinstall`; drop the unresolvable `@deepseek-ai/*` devDeps.
+- Rename harness imports in `src/harness/*`, `test/e2e/probe-llm.mjs`, and the two scripts that
+  name the scope (`verify-boundary.mjs`, `build-plugin.mjs` external/alias).
+- Fix whatever the 0.1.0-rc.7 → 0.1.1-rc.2 bump broke, guided by `tsc`.
+- The product is still called `dsh-cctui` here; only the harness underneath changes.
+- **Acceptance:** `tsc --noEmit` green, `vitest run` green (1956 tests), `verify:boundary` green,
+  `dist/plugin.js` builds with only `@singula-ai/*` external.
 
-### Stage 4 — Harness plugin boots; core conversation loop works
-- `src/harness/` adapter (the only dir importing `@deepseek-ai/*`): plugin entry
-  (`name`/`inject`/`Config`/`apply`), TTY guard, exit funnel, React mount; `cordis.patch.yml` +
-  dev `cordis.yml`; `HarnessGatewayClient` v1:
-  - boot: agent create/resume → `gateway.ready` + `session.info`;
-  - `prompt.submit` → `agent.followup()` / busy → `agent.steer()`; `session.interrupt` →
-    `agent.cancel({kind:'user'})`;
-  - `session/event` → `message.delta` (assistant/chunk text), `thinking.delta` (reasoning
-    chunks), `tool.start` (tool/call), `tool.complete` (tool/result), `message.complete`
-    (assistant/message + turn/end), busy state from `agent/status`.
-- Scripted-LLM e2e: a tiny test-only cordis plugin registering a canned LLM adapter; PTY/headless
-  boot asserts prompt→stream→tool→result renders in the transcript.
-- Acceptance: `dsh --profile cc` (dev profile) shows the clawcodex UI and completes a scripted
-  turn end-to-end.
+### Stage 3 — Rebrand to alego-tui
+- Identifiers: package `alego-tui`, plugin/row name, bin, profile; `DSH_CCTUI_*` → `ALEGO_TUI_*`
+  (63 files); `packages/dsh-cctui-ink` → `packages/alego-tui-ink`, `@dsh-cctui/ink` →
+  `@alego-tui/ink` (~100 import sites, three esbuild aliases, tsconfig paths, ambient `.d.ts`).
+- Data dir `~/.dsh-cctui` → `~/.alego-tui` (`ALEGO_TUI_HOME`).
+- Brand: ALEGO-TUI wordmark; the whale mascot becomes a **LEGO brick** (Alego is "AI agent LEGO
+  blocks", and its mark is a brick); palette and theme hue move from DeepSeek blue `#4D6BFE` to
+  Alego amber `#F5A524`; taglines read "for Alego", per Alego's
+  [brand guidelines](https://github.com/singula-ai/alego/blob/main/BRAND_GUIDELINES.md), which ask
+  that a third-party project not present "Alego" as its own name.
+- Attribution for the Ink fork and both upstream projects stays in `NOTICE.md`.
+- **Acceptance:** typecheck + tests green; banner colors regression-tested (see the v0.2.1 lesson
+  in PORTING-NOTES — a rebrand that only changed glyphs shipped the wrong color once already).
 
-### Stage 5 — Interaction gates
-- `approval/request` waterfall → `approval.request` → ApprovalPrompt → outcomes
-  (`allowed-once`/`rejected`); pairing with streamed `tool/call` via `callId`.
-- `ctx.userQuestions.registerProvider` → `question.request` → AskUserQuestion panel; plan-review
-  intent → PlanApprovalPrompt; plan mode via `ctx.planMode`.
-- Permission modes: map clawcodex `default/plan/acceptEdits/bypassPermissions` onto harness
-  approval policy + permission presets + plan mode; Shift+Tab cycle; footer badges.
-- Acceptance: e2e scripts covering approve/deny, question answer/cancel, mode cycling.
+### Stage 4 — Packaging, launcher, and end-to-end
+- `cordis.patch.yml` → `alego.bundle`; `bin/alego-tui.js`; `install.sh` resolving an `alego` CLI
+  from PATH or a checkout; README rewritten for Alego.
+- Retarget both PTY e2e drivers (`scripts/e2e/run_core.py`, `run_install.py`) and the mock LLM
+  adapter onto Alego; run them.
+- **Acceptance:** `npm run e2e` passes end to end — real Alego CLI boots the TUI as a bundle,
+  a scripted turn streams, tools render, a session resumes.
 
-### Stage 6 — Sessions
-- `session.list`/`active_list`/`resume`/`create`/`close`/`delete`/`title`/`stats` over
-  `ctx.agents`, `ctx.sessionPersistence`, `ctx.sessionProjections`; transcript rehydration from
-  the session event log on resume; Ctrl+X switcher; `/clear`, `/new`, `/rename`, `/resume`.
-- Acceptance: e2e resume of a prior scripted session shows the replayed transcript.
+## Risk register
 
-### Stage 7 — Slash commands, completions, model picker, config
-- Merge local registry + `ctx.commands` catalog (`commands.catalog`, `slash.exec`,
-  `command.dispatch`, `commands/change` refresh); `complete.slash` + `complete.path`.
-- `/model` via `ctx.llm` catalog + `installModelSelection` + `ctx.agentDefaultModel`; `/compact`
-  via `ctx.compaction`; `/status`, `/help`, `/usage`; `config.get/set` over a `dsh-cctui`
-  settings namespace.
-- Acceptance: e2e slash dispatch of a harness-registered command; model switch reflected in
-  `session.info`.
+| Risk | Mitigation |
+|---|---|
+| API drift in the rc.7 → rc.2 bump | `tsc` against real Alego types is the detector; soft-probed services degrade rather than crash |
+| Alego checkout missing or stale on a user's machine | `link-alego.mjs` fails loudly with the exact fix; `bin/` probes before boot |
+| Rebrand ships stale colors (happened upstream in v0.2.1) | Assert SGR colors in the e2e banner region, not just glyphs |
+| Renaming the vendored Ink fork breaks resolution in three build paths | tsconfig paths, esbuild alias, and the ambient module declaration are changed together and covered by typecheck + the mount smoke test |
+| Upstream test skew (11 skipped tests) | Inherited, documented in PORTING-NOTES; not reconciled by this port unless a stage touches that area |
 
-### Stage 8 — Rich rendering & telemetry
-- Structured diffs: tool `presentCall/presentResult` Diff views → `StructuredDiffPayload`
-  (colorDiff pipeline); terminal views → tool trail output; `todo/write` → TodoPanel;
-  token usage/context bar via `ctx.tokenMeter` + `resolveModelInfo`; subagent progress
-  (`ctx.subagents` → `subagent.*`); goal indicator (`ctx.goals`); notices.
-- Acceptance: e2e scripted Edit tool shows the diff card; todos render; context % moves.
+## Lineage: the dsh-ccTUI port
 
-### Stage 9 — Packaging, launcher, final QA
-- `bin/dsh-cctui.js` launcher (profile bootstrap via `dsh plugin add`, version-skew guard,
-  `NODE_ENV=production`), `install.sh`, packaged `files` list, README usage docs.
-- Fresh-`DSH_HOME` install e2e from a local checkout; tag `v0.1.0`.
-- Acceptance: `./install.sh` on a clean profile launches the TUI.
+This repo's baseline is dsh-ccTUI at v0.3.18, itself a port of the **clawcodex `ui-tui`** React
+terminal UI onto deepseek-harness across nine stages (all merged upstream, 2026-08-18): plan and
+scaffolding, vendored Ink fork, verbatim app copy over a null gateway, harness gateway with the
+core conversation loop, interaction gates (approvals, questions, plan review, permission modes),
+sessions and resume, the command bridge and model picker, rich rendering and telemetry, and
+packaging. Later releases rebranded it for DeepSeek (v0.2.0), moved it to its own data directory
+and ocean-blue palette (v0.2.1), and renamed the vendored fork (v0.3.0).
+
+That history matters here for one reason: it established the architecture this port depends on —
+a single narrow adapter with graceful degradation — and it recorded the mistakes worth not
+repeating. Both are in [PORTING-NOTES.md](./PORTING-NOTES.md); the live architecture is in
+[ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## Status log
 
-- 2026-08-18: Stage 1 merged (#1). Stage 2 merged (#2) — fork vendored, 129 fork tests green.
-- 2026-08-18: Stage 3 merged (#3) — verbatim app copy, 1879 tests green, AppLayout mounts headless.
-- 2026-08-18: Stage 4 merged (#4) — harness gateway: real dsh boots the TUI as a cordis
-  plugin; scripted end-to-end turn passes in a PTY e2e (also in CI).
-- 2026-08-18: Stage 5 merged (#5) — gates: approvals (sandbox escalation e2e round-trip),
-  user questions, plan review, permission-mode cycle.
-- 2026-08-18: Stage 6 merged (#6) — sessions: live-agent registry, resume/activate with
-  transcript rehydration, session list/close/title; two-phase resume e2e.
-- 2026-08-18: Stage 7 merged (#7) — command bridge, /model + effort via llm catalog with
-  persisted selection, token-meter usage/context bar.
-- 2026-08-18: Stage 8 merged (#8) — presentation views (diff cards via structuredPatch,
-  terminal/search views), todos rider, tool.generating, resume stats.
-- 2026-08-18: Stage 9 merged (#9) — packaging: install.sh + bin launcher, installed-path
-  e2e via real `dsh plugin add` (in CI), README.
-- 2026-08-18: **v0.1.0 tagged — all nine stages complete.** The clawcodex TUI runs as a
-  deepseek-harness plugin: conversation loop, tool trail + diff cards, approvals, questions,
-  plan review, permission modes, sessions/resume, command bridge, model picker, usage
-  metering, checkout-based install. Remaining ideas live in PORTING-NOTES (skipped upstream
-  test skew, features with no harness backend).
-- 2026-08-18: v0.2.1 — ocean-blue brand ramp + DeepSeek-blue theme hue; the app owns
-  `~/.dsh-cctui` (no longer reads clawcodex's config); `/logo` persistence implemented;
-  banner colors now regression-tested.
+- 2026-08-23: baseline imported (dsh-ccTUI v0.3.18 sources, 1956 tests green against
+  deepseek-harness 0.1.0-rc.7).
