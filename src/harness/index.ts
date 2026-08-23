@@ -2,8 +2,8 @@
 // name/inject/Config synchronously; the heavy TUI wiring lives in plugin.ts
 // behind a dynamic import so a boot failure surfaces as a plugin error
 // instead of a module-load crash.
-import type { Context } from '@deepseek-ai/cordis'
-import Schema from '@deepseek-ai/schemastery'
+import type { Context } from '@singula-ai/cordis'
+import Schema from '@singula-ai/schemastery'
 
 export const name = 'dsh-cctui'
 

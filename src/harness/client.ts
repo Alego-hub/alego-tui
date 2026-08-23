@@ -5,23 +5,23 @@
 // emission is translated from harness `session/event` records.
 //
 // Boundary rule: src/harness/ is the ONLY directory allowed to import
-// @deepseek-ai/* (see docs/ARCHITECTURE.md).
+// @singula-ai/* (see docs/ARCHITECTURE.md).
 import { randomUUID } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
 
-import type { Context } from '@deepseek-ai/cordis'
-import { installModelSelection, type Agent, type AgentHandle, type ModelSelection, type ModelSelectionRef } from '@deepseek-ai/dsh-agent'
-import { SessionId, type Session, type SessionEvent, type SessionHeader } from '@deepseek-ai/dsh-session'
-import { createUserMessage, type ContentBlock, type StreamChunk, type TokenUsage } from '@deepseek-ai/dsh-llm'
-import type { ApprovalOutcome, ApprovalRequest } from '@deepseek-ai/dsh-user-approval'
-import type { AskUserQuestionAnswer, AskUserQuestionItem, AskUserQuestionRequest } from '@deepseek-ai/dsh-user-questions'
+import type { Context } from '@singula-ai/cordis'
+import { installModelSelection, type Agent, type AgentHandle, type ModelSelection, type ModelSelectionRef } from '@singula-ai/alego-agent'
+import { SessionId, type Session, type SessionEvent, type SessionHeader } from '@singula-ai/alego-session'
+import { createUserMessage, type ContentBlock, type StreamChunk, type TokenUsage } from '@singula-ai/alego-llm'
+import type { ApprovalOutcome, ApprovalRequest } from '@singula-ai/alego-user-approval'
+import type { AskUserQuestionAnswer, AskUserQuestionItem, AskUserQuestionRequest } from '@singula-ai/alego-user-questions'
 // Type-only: activates the 'plan/mode' SessionEventMap augmentation.
-import type {} from '@deepseek-ai/dsh-plan-mode'
+import type {} from '@singula-ai/alego-plan-mode'
 // Type-only: activates the subagent lifecycle Events and the
 // 'subagent/descriptor' SessionEventMap augmentation.
-import type {} from '@deepseek-ai/dsh-subagent'
+import type {} from '@singula-ai/alego-subagent'
 
 import { toolArgsPreview } from '../domain/toolArgs.js'
 import { isDelegationCall } from '../domain/toolBrief.js'

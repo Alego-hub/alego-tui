@@ -1,7 +1,7 @@
 // Test-only cordis plugin: a scripted LLM that turns a `PROBE <tool> <json>`
 // user prompt into exactly that tool call, so every harness tool can be driven
 // through the real agent loop with no network and no credentials.
-import { LlmAdapter } from '@deepseek-ai/dsh-llm'
+import { LlmAdapter } from '@singula-ai/alego-llm'
 
 export const name = 'probe-llm'
 export const inject = ['llm', 'web']
@@ -75,7 +75,7 @@ class ProbeAdapter extends LlmAdapter {
   }
 }
 
-// Canned web providers. dsh-base ships no local fetch provider and its search
+// Canned web providers. alego-base ships no local fetch provider and its search
 // provider wants a DeepSeek key, so probing the web tools' cards would
 // otherwise need the network and a credential. These keep the gallery offline
 // and its captures byte-stable.
