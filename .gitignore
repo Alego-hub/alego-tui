@@ -4,10 +4,10 @@ node_modules/
 /lib/
 packages/dsh-cctui-ink/dist/
 *.tsbuildinfo
-.dsh-dev-home/
+.alego-dev-home/
 *.log
 .DS_Store
 e2e-scratch/
-/.dsh-install-home/
+/.alego-install-home/
 __pycache__/
 my-prompts/

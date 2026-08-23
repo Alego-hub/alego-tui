@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Installed-path e2e: exercise the REAL distribution flow into a scratch
-DSH_HOME —
+ALEGO_HOME —
 
-    dsh plugin --profile dsh-cctui add <this checkout>
-    dsh --profile dsh-cctui
+    alego plugin --profile dsh-cctui add <this checkout>
+    alego --profile dsh-cctui
 
 with the bundle's own cordis.patch.yml supplying the cctui row (the dev
 patch only inserts the mock LLM and overrides the row's config), then drive
@@ -25,9 +25,9 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-HOME = ROOT / ".dsh-install-home"
+HOME = ROOT / ".alego-install-home"
 PATCH = HOME / "install.cordis.yml"
-DSH = ROOT / "node_modules" / "@deepseek-ai" / "dsh" / "lib" / "bin.js"
+DSH = ROOT / "node_modules" / "@singula-ai" / "alego" / "lib" / "bin.js"
 PROMPT_GLYPH = "❯"
 
 
@@ -40,7 +40,7 @@ def install() -> None:
     shutil.rmtree(HOME, ignore_errors=True)
     HOME.mkdir(parents=True)
     env = dict(os.environ)
-    env["DSH_HOME"] = str(HOME)
+    env["ALEGO_HOME"] = str(HOME)
     r = sh(
         ["node", str(DSH), "plugin", "--profile", "dsh-cctui", "add", str(ROOT)],
         env=env,
@@ -52,9 +52,9 @@ def install() -> None:
     if r.returncode != 0:
         print(r.stdout[-3000:])
         print(r.stderr[-3000:])
-        raise SystemExit("dsh plugin add failed")
+        raise SystemExit("alego plugin add failed")
     manifest = json.loads((HOME / "profiles" / "dsh-cctui" / "package.json").read_text())
-    bundles = manifest.get("dsh", {}).get("profile", {}).get("bundles", [])
+    bundles = manifest.get("alego", {}).get("profile", {}).get("bundles", [])
     print("  profile bundles:", bundles)
     assert "dsh-cctui" in bundles, "bundle not registered in the profile manifest"
     PATCH.write_text(
@@ -76,7 +76,7 @@ def install() -> None:
 def drive() -> list[str]:
     failures: list[str] = []
     env = dict(os.environ)
-    env["DSH_HOME"] = str(HOME)
+    env["ALEGO_HOME"] = str(HOME)
     env["NODE_ENV"] = "production"
     env["DSH_CCTUI_INLINE"] = "1"
     cmd = ["node", str(DSH), "--profile", "dsh-cctui", "--patch", str(PATCH)]

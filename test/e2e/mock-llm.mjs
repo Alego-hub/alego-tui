@@ -5,7 +5,7 @@
 // Script behavior: replies with a fixed preamble + the last user text. When
 // the user text contains "USE-TOOL", the first step requests a todo_write
 // tool call before a closing text step (used by later stages).
-import { LlmAdapter } from '@deepseek-ai/dsh-llm'
+import { LlmAdapter } from '@singula-ai/alego-llm'
 
 export const name = 'mock-llm'
 export const inject = ['llm', 'commands']

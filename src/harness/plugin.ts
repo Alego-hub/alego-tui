@@ -3,7 +3,7 @@
 // memory monitor) stays here; React is mounted on the real process streams.
 import { createElement } from 'react'
 
-import type { Context } from '@deepseek-ai/cordis'
+import type { Context } from '@singula-ai/cordis'
 
 import type { Config } from './index.js'
 import { HarnessGatewayClient } from './client.js'

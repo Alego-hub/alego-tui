@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Bundles the cordis plugin (src/harness/index.ts) into dist/plugin.js.
-// Everything except @deepseek-ai/* is bundled in (React, the vendored ink
-// fork, the whole app), so a dsh profile needs no extra node_modules to load
+// Everything except @singula-ai/* is bundled in (React, the vendored ink
+// fork, the whole app), so a alego profile needs no extra node_modules to load
 // the plugin — the harness packages resolve from the profile itself.
 import { build } from 'esbuild'
 import { fileURLToPath } from 'node:url'
@@ -36,7 +36,7 @@ await build({
   jsxImportSource: 'react',
   // The harness framework and services must be shared with the host process —
   // never bundled — so cordis instanceof/service identities stay unified.
-  external: ['@deepseek-ai/*'],
+  external: ['@singula-ai/*'],
   // Bundle the ink fork from source (the prebuilt bundle's __esm helper breaks
   // lazy-initialized exports like `render`).
   alias: { '@dsh-cctui/ink': resolve(root, 'packages/dsh-cctui-ink/src/entry-exports.ts') },

@@ -2,10 +2,10 @@
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
-│ dsh (cordis runtime, profile "cc")                                 │
-│  @deepseek-ai/dsh-base layer                                       │
-│  + dsh-cctui cordis.patch.yml layer                               │
-│    └─ plugin row: dsh-cctui                                       │
+│ alego (cordis runtime, profile "cc")                               │
+│  @singula-ai/alego-base layer                                      │
+│  + dsh-cctui cordis.patch.yml layer                                │
+│    └─ plugin row: dsh-cctui                                        │
 │        src/harness/index.ts   name/inject/Config/apply             │
 │        src/harness/plugin.ts  TTY guard · agent resolve · mount    │
 │        src/harness/client.ts  HarnessGatewayClient  ◄── the seam   │
@@ -13,7 +13,7 @@
 │            │   on('event') → GatewayEvent (44 types)               │
 │            │   request(method, params) → Promise (75 methods)      │
 │        ────┼───────── adapter boundary (only src/harness/* may     │
-│            │          import @deepseek-ai/*)                       │
+│            │          import @singula-ai/*)                        │
 │        src/app/…  src/components/…  src/lib/…  src/domain/…        │
 │            (copied from clawcodex ui-tui, backend-agnostic)        │
 │        packages/dsh-cctui-ink  (forked Ink renderer, vendored)     │
@@ -89,17 +89,48 @@ unchanged, and terminal/search/read views into `result_text` for the tool trail.
   mode names are preserved in the UI and mapped (see Stage 5).
 - **Cost**: the harness meters tokens, not dollars; the cost segment renders token counts.
 
+## Dependency resolution: an unpublished harness
+
+`@singula-ai/*` is not on npm, so the harness packages cannot be ordinary dependencies. They come
+from a local Alego checkout instead, linked in by `scripts/link-alego.mjs` (run from
+`postinstall`), which finds the checkout via `ALEGO_REPO` or a sibling search and symlinks every
+`@singula-ai` workspace member into `node_modules/@singula-ai/`.
+
+Linking whole package directories is what makes this work rather than merely resolve. Alego is a
+pnpm workspace in which each package carries its own `node_modules/@singula-ai/` symlinks to its
+workspace peers, so a linked package brings its peer graph with it — for `tsc`, for Node at
+runtime, and for the e2e driver that boots the real `alego` CLI out of this repo's node_modules.
+
+The three consumers stay consistent because they all read the same link farm:
+
+| Consumer | Resolves via |
+|---|---|
+| `tsc --noEmit` | `node_modules/@singula-ai/*/lib/types/*.d.ts` |
+| `dist/plugin.js` | nothing — `@singula-ai/*` is **external**, resolved by the host at load |
+| e2e PTY driver | `node_modules/@singula-ai/alego/lib/bin.js` |
+
+Keeping the harness external in the bundle is load-bearing, not an optimization: cordis services
+are matched by identity, so a second copy of `@singula-ai/alego-session` inside the bundle would
+give the plugin a different `SessionId` and different service instances than the host. Only four
+packages survive as externals — the four with value imports (`alego-agent`, `alego-llm`,
+`alego-session`, `schemastery`); the type-only ones erase at build.
+
+`package.json` records the requirement as `peerDependencies`, which is the honest relationship —
+the host process supplies them — marked `optional` in `peerDependenciesMeta` only to stop npm
+trying to fetch packages the registry does not have yet. When Alego publishes, drop the link
+script and the `optional` markers; no source file changes.
+
 ## Package layout (target)
 
 ```
-dsh-cctui/
-├── package.json            # "dsh": {"bundle": {"patch": "./cordis.patch.yml"}}, peerDeps @deepseek-ai/*
-├── cordis.patch.yml        # real install path: config overrides + inserts over dsh-base
+alego-tui/
+├── package.json            # "alego": {"bundle": {"patch": "./cordis.patch.yml"}}, peerDeps @singula-ai/*
+├── cordis.patch.yml        # real install path: config overrides + inserts over alego-base
 ├── cordis.yml              # dev: full composition incl. scripted-LLM for e2e
 ├── bin/dsh-cctui.js       # launcher: profile bootstrap + skew guard (Stage 9)
 ├── packages/dsh-cctui-ink/ # vendored fork, unchanged (file: dependency)
 ├── src/
-│   ├── harness/            # ONLY dir importing @deepseek-ai/* (adapter boundary)
+│   ├── harness/            # ONLY dir importing @singula-ai/* (adapter boundary)
 │   │   ├── index.ts        # cordis plugin surface
 │   │   ├── plugin.ts       # wiring: guards, agent resolve, React mount, exit funnel
 │   │   ├── client.ts       # HarnessGatewayClient

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""End-to-end suite: boot the real dsh (from this repo's node_modules) with
-the dsh-base bundle + the built cctui plugin + a scripted mock LLM, inside a
+"""End-to-end suite: boot the real alego (from this repo's node_modules) with
+the alego-base bundle + the built cctui plugin + a scripted mock LLM, inside a
 real PTY, and drive full user scenarios.
 
 Phase 1 (fixed session id): conversation loop + sandbox-escalation approval.
@@ -9,7 +9,7 @@ replays its transcript.
 
 Everything (CLI, loader, harness packages, plugin externals) resolves from
 this repo's node_modules, so there is exactly one copy of every
-@deepseek-ai package in the process.
+@singula-ai package in the process.
 """
 import fcntl
 import json
@@ -27,7 +27,7 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-HOME = ROOT / ".dsh-dev-home"
+HOME = ROOT / ".alego-dev-home"
 PROFILE = HOME / "profiles" / "cc"
 PATCH = HOME / "dev.cordis.yml"
 
@@ -40,10 +40,10 @@ def bootstrap(fixed_session: str | None) -> None:
     (PROFILE / "package.json").write_text(
         json.dumps(
             {
-                "name": "dsh-profile-cc",
+                "name": "alego-profile-cc",
                 "private": True,
                 "dependencies": {},
-                "dsh": {"profile": {"bundles": ["@deepseek-ai/dsh-base"]}},
+                "alego": {"profile": {"bundles": ["@singula-ai/alego-base"]}},
             },
             indent=2,
         )
@@ -67,20 +67,20 @@ def bootstrap(fixed_session: str | None) -> None:
 
 
 class TuiSession:
-    """One dsh boot inside a PTY, with a minimal query-answering terminal."""
+    """One alego boot inside a PTY, with a minimal query-answering terminal."""
 
     def __init__(self, label: str) -> None:
         self.label = label
         self.transcript = bytearray()
         self.answered: set[str] = set()
         env = dict(os.environ)
-        env["DSH_HOME"] = str(HOME)
+        env["ALEGO_HOME"] = str(HOME)
         env["NODE_ENV"] = "production"
         env["DSH_CCTUI_INLINE"] = "1"
         env.pop("DSH_CCTUI_THEME", None)
         cmd = [
             "node",
-            str(ROOT / "node_modules" / "@deepseek-ai" / "dsh" / "lib" / "bin.js"),
+            str(ROOT / "node_modules" / "@singula-ai" / "alego" / "lib" / "bin.js"),
             "--profile",
             "cc",
             "--patch",

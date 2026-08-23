@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Launcher: boots the dsh profile that carries the dsh-cctui bundle.
+// Launcher: boots the alego profile that carries the dsh-cctui bundle.
 // Pure JS on purpose — it runs before any build output exists and must give
 // actionable errors when the environment is missing pieces.
 import { spawnSync, spawn } from 'node:child_process'
@@ -18,21 +18,21 @@ if (args.includes('--version') || args.includes('-V')) {
   process.exit(0)
 }
 
-const probe = spawnSync('dsh', ['--version'], { encoding: 'utf8' })
+const probe = spawnSync('alego', ['--version'], { encoding: 'utf8' })
 
 if (probe.error || probe.status !== 0) {
-  console.error('dsh-cctui: the `dsh` CLI is not on PATH.')
-  console.error('Install deepseek-harness first, e.g.:  npm install -g @deepseek-ai/dsh')
+  console.error('dsh-cctui: the `alego` CLI is not on PATH.')
+  console.error('Install deepseek-harness first, e.g.:  npm install -g @singula-ai/alego')
   process.exit(1)
 }
 
-const home = process.env.DSH_HOME || join(process.env.HOME || process.env.USERPROFILE || '.', '.dsh')
+const home = process.env.ALEGO_HOME || join(process.env.HOME || process.env.USERPROFILE || '.', '.alego')
 const profileDir = join(home, 'profiles', PROFILE)
 
 if (!existsSync(join(profileDir, 'package.json'))) {
   console.error(`dsh-cctui: profile "${PROFILE}" is not set up yet.`)
   console.error('From a checkout of this repository, run:  ./install.sh')
-  console.error(`(or manually:  dsh plugin --profile ${PROFILE} add <path-to-checkout>)`)
+  console.error(`(or manually:  alego plugin --profile ${PROFILE} add <path-to-checkout>)`)
   process.exit(1)
 }
 
@@ -40,7 +40,7 @@ const env = { ...process.env }
 
 env.NODE_ENV ??= 'production'
 
-const child = spawn('dsh', ['--profile', PROFILE, ...args], { env, stdio: 'inherit' })
+const child = spawn('alego', ['--profile', PROFILE, ...args], { env, stdio: 'inherit' })
 
 child.on('exit', (code, signal) => {
   if (signal) {

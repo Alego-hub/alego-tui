@@ -42,7 +42,7 @@ def main() -> int:
     env = dict(os.environ)
     env["NODE_ENV"] = "production"
     proc = subprocess.Popen(
-        ["dsh", "--profile", args.profile],
+        ["alego", "--profile", args.profile],
         stdin=slave, stdout=slave, stderr=slave,
         env=env, cwd=args.cwd, close_fds=True, preexec_fn=os.setsid,
     )

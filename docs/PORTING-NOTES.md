@@ -184,3 +184,32 @@ observed behavior instead of leaving it skipped.
 - Remaining "clawcodex" mentions in the tree are provenance comments ("ported from …") and
   the dead Python-gateway test fixtures; those describe history and stay.
 - The inert `/memory` feature's file name became `DSH-CCTUI.md` under `~/.dsh-cctui`.
+
+## Alego stage 2 — harness retarget (deepseek-harness 0.1.0-rc.7 → Alego 0.1.1-rc.2)
+
+- Package rename is exactly 1:1: `@deepseek-ai/dsh-<x>` → `@singula-ai/alego-<x>`,
+  `@deepseek-ai/cordis` → `@singula-ai/cordis`, `@deepseek-ai/schemastery` →
+  `@singula-ai/schemastery`, CLI `dsh` → `alego`. Alego's first two commits import
+  deepseek-harness and rename it, so no package was merged, split, or dropped.
+- **The version bump cost nothing.** `tsc --noEmit` against the real Alego `.d.ts` files reports
+  zero errors on the first try — the rc.7 → rc.2 surface we consume is unchanged. Verified the
+  check was real (not silently skipping unresolved modules) by importing a bogus symbol and
+  confirming TS2614.
+- `@singula-ai/*` is unpublished, so the packages come from a local checkout via
+  `scripts/link-alego.mjs` (postinstall). It links the whole scope (241 packages) rather than a
+  curated list: pnpm gives each package its own peer symlinks, so linking directories brings the
+  peer graph along, and a newly-consumed package never needs a script change.
+- devDependencies on the harness were removed (npm cannot fetch them); the requirement is
+  declared as `peerDependencies` + `peerDependenciesMeta.optional`. Peer is the honest
+  relationship — the host process provides these — and `optional` only stops npm from trying to
+  install them.
+- Bundle externals dropped from 20 declared packages to the four with real value imports
+  (`alego-agent`, `alego-llm`, `alego-session`, `schemastery`); the type-only imports erase.
+  `dist/plugin.js` contains zero `deepseek-ai` references.
+- Renames done in this stage are *harness identity* only (`DSH_HOME` → `ALEGO_HOME`, the
+  `"dsh"`/`"alego"` manifest key, `.dsh-dev-home` → `.alego-dev-home`, the `alego` CLI name).
+  Product identity (`dsh-cctui`, `DSH_CCTUI_*`, `@dsh-cctui/ink`) is stage 3, so this stage's
+  diff stays readable as "same product, different harness".
+- zsh lesson for anyone scripting the remaining renames: unquoted `$var` is **not** word-split,
+  so `for f in $files` passes the entire newline-joined list as one argument. Use
+  `... | while read -r f`.
