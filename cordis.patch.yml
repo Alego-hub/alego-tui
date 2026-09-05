@@ -9,6 +9,10 @@
   disabled: true
 
 - insert:
+    # Interactive entry points own the question tool in Alego 0.1.3.
+    - id: tool-ask-user
+      name: '@singula-ai/alego-tool-ask-user'
+
     - id: tui
       name: alego-tui
       config: {}

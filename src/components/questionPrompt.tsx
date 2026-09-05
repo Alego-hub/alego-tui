@@ -327,7 +327,7 @@ export function QuestionPrompt({ cols = 80, onAnswer, questions: raw, t }: Quest
   const inSubmitView = index === questions.length
   const question = questions[index]
 
-  const answered = (q: QuestionSpec) => !!answers[q.question]
+  const answered = (q: QuestionSpec) => !!answers[q.id ?? q.question]
 
   const allAnswered = questions.every(answered)
 
@@ -355,7 +355,7 @@ export function QuestionPrompt({ cols = 80, onAnswer, questions: raw, t }: Quest
       return
     }
 
-    commit(withAnswer(answers, question.question, label))
+    commit(withAnswer(answers, question.id ?? question.question, label))
   }
 
   const toggleMulti = (label: string) => {
@@ -363,7 +363,7 @@ export function QuestionPrompt({ cols = 80, onAnswer, questions: raw, t }: Quest
       return
     }
 
-    const key = question.question
+    const key = question.id ?? question.question
     const current = picked[key] ?? []
     // Append on add so the array preserves toggle order.
     const next = current.includes(label) ? current.filter(v => v !== label) : [...current, label]
@@ -378,7 +378,7 @@ export function QuestionPrompt({ cols = 80, onAnswer, questions: raw, t }: Quest
       return
     }
 
-    const key = question.question
+    const key = question.id ?? question.question
     const nextTexts = { ...texts, [key]: value }
 
     setTexts(nextTexts)
@@ -406,7 +406,7 @@ export function QuestionPrompt({ cols = 80, onAnswer, questions: raw, t }: Quest
       return
     }
 
-    const typed = (texts[question.question] ?? '').trim()
+    const typed = (texts[question.id ?? question.question] ?? '').trim()
 
     // DELIBERATE DIVERGENCE from upstream, which cancels the WHOLE dialog when
     // Enter lands on an empty free-text row (select.tsx onEmptyInputSubmit).
@@ -597,7 +597,7 @@ export function QuestionPrompt({ cols = 80, onAnswer, questions: raw, t }: Quest
   const shown = windowItems(options, Math.min(sel, Math.max(options.length - 1, 0)), VISIBLE_OPTIONS)
   const other = otherIndex(question)
   const submit = submitIndex(question)
-  const key = question.question
+  const key = question.id ?? question.question
   const chosen = picked[key] ?? []
   const text = texts[key] ?? ''
   const single = answers[key]

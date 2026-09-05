@@ -13,7 +13,7 @@ import { join } from 'node:path'
 
 import type { Context } from '@singula-ai/cordis'
 import { installModelSelection, type Agent, type AgentHandle, type ModelSelection, type ModelSelectionRef } from '@singula-ai/alego-agent'
-import { SessionId, type Session, type SessionEvent, type SessionHeader } from '@singula-ai/alego-session'
+import { SessionId, SessionLogOffset, type Session, type SessionEvent, type SessionHeader } from '@singula-ai/alego-session'
 import { createUserMessage, type ContentBlock, type StreamChunk, type TokenUsage } from '@singula-ai/alego-llm'
 import type { ApprovalOutcome, ApprovalRequest } from '@singula-ai/alego-user-approval'
 import type { AskUserQuestionAnswer, AskUserQuestionItem, AskUserQuestionRequest } from '@singula-ai/alego-user-questions'
@@ -22,6 +22,7 @@ import type {} from '@singula-ai/alego-plan-mode'
 // Type-only: activates the subagent lifecycle Events and the
 // 'subagent/descriptor' SessionEventMap augmentation.
 import type {} from '@singula-ai/alego-subagent'
+import type {} from '@singula-ai/alego-tool-todo'
 
 import { toolArgsPreview } from '../domain/toolArgs.js'
 import { isDelegationCall } from '../domain/toolBrief.js'
@@ -369,6 +370,7 @@ export class HarnessGatewayClient extends GatewayClient {
   private agent: Agent | null = null
   private handle: AgentHandle | null = null
   private live = new Map<string, AgentHandle>()
+  private shutdown: Promise<void> | undefined
   private disposers: Array<() => void> = []
   private agentDisposers: Array<() => void> = []
   private selection: ModelSelectionRef = { current: undefined, assembled: undefined }
@@ -408,6 +410,7 @@ export class HarnessGatewayClient extends GatewayClient {
     items: AskUserQuestionItem[]
     planApprove?: string
     resolve: (a: AskUserQuestionAnswer) => void
+    cancel: () => void
   } | null = null
 
   constructor(ctx: Context, opts: HarnessClientOptions = {}) {
@@ -503,7 +506,7 @@ export class HarnessGatewayClient extends GatewayClient {
     this.sid = String(handle.agent.id)
     this.bindAgent(handle.agent)
 
-    const events = handle.agent.session.events
+    const events = handle.agent.session.snapshotEvents()
 
     this.turnCount = events.filter(e => e.type === 'turn/end').length
     this.turnStarted = false
@@ -663,6 +666,13 @@ export class HarnessGatewayClient extends GatewayClient {
   }
 
   private bindAgent(agent: Agent): void {
+    this.agentDisposers.push(
+      this.ctx.on('agent/assistant-stream', ({ agent: subject, frame }) => {
+        if (subject === agent && frame.type === 'chunk') {
+          this.onChunk(frame.chunk)
+        }
+      })
+    )
     this.agentDisposers.push(
       this.ctx.on('session/event', (session: Session, event: SessionEvent) => {
         if (session === agent.session) {
@@ -892,13 +902,6 @@ export class HarnessGatewayClient extends GatewayClient {
         break
       }
 
-      case 'assistant/chunk': {
-        const { chunk } = (event as SessionEvent<'assistant/chunk'>).data
-
-        this.onChunk(chunk)
-        break
-      }
-
       case 'assistant/message': {
         const { message, usage } = (event as SessionEvent<'assistant/message'>).data
         const text = textOf(message.content, ['text'])
@@ -1100,18 +1103,15 @@ export class HarnessGatewayClient extends GatewayClient {
       )
     }
 
-    const userQuestions = this.ctx.get('userQuestions') as
-      | { registerProvider: (p: { ask: (r: AskUserQuestionRequest) => Promise<AskUserQuestionAnswer> }) => () => void }
-      | undefined
+    this.disposers.push(
+      this.ctx.on('user-questions/request', (request, next) => {
+        if (request.agent !== this.agent) {
+          return next()
+        }
 
-    if (userQuestions) {
-      try {
-        this.disposers.push(userQuestions.registerProvider({ ask: request => this.parkQuestion(request) }))
-      } catch {
-        // A composed profile may already carry a provider (DUPLICATE_PROVIDER);
-        // yield rather than crash the boot — the other surface answers.
-      }
-    }
+        return this.parkQuestion(request)
+      })
+    )
   }
 
   private parkApproval(req: ApprovalRequest): Promise<ApprovalOutcome> {
@@ -1150,11 +1150,25 @@ export class HarnessGatewayClient extends GatewayClient {
 
   private parkQuestion(request: AskUserQuestionRequest): Promise<AskUserQuestionAnswer> {
     const items = request.questions
+    request.signal?.throwIfAborted()
 
-    return new Promise<AskUserQuestionAnswer>(resolve => {
+    return new Promise<AskUserQuestionAnswer>((resolve, reject) => {
+      const cleanup = () => request.signal?.removeEventListener('abort', cancel)
+      const settle = (answer: AskUserQuestionAnswer) => {
+        cleanup()
+        resolve(answer)
+      }
+      const cancel = () => {
+        cleanup()
+        if (this.gateQuestion?.resolve === settle) {
+          this.gateQuestion = null
+        }
+        reject(new Error('Question cancelled'))
+      }
+      request.signal?.addEventListener('abort', cancel, { once: true })
       const planItem = items.length === 1 && items[0]!.intent?.kind === 'plan-review' ? items[0]! : undefined
 
-      this.gateQuestion = { items: [...items], planApprove: planItem?.intent?.approve, resolve }
+      this.gateQuestion = { cancel, items: [...items], planApprove: planItem?.intent?.approve, resolve: settle }
 
       if (planItem) {
         this.publishLocalEvent({
@@ -1169,6 +1183,7 @@ export class HarnessGatewayClient extends GatewayClient {
       this.publishLocalEvent({
         payload: {
           questions: items.map(q => ({
+            id: q.id,
             header: q.header,
             multiSelect: q.multiSelect,
             options: q.options?.map(o => ({ description: o.description, label: o.label })),
@@ -1372,7 +1387,14 @@ export class HarnessGatewayClient extends GatewayClient {
     }
   }
 
-  override kill(_reason = 'requested'): void {
+  override kill(_reason = 'requested'): Promise<void> {
+    if (this.shutdown) {
+      return this.shutdown
+    }
+
+    this.gateQuestion?.cancel()
+    this.gateApproval?.resolve('cancelled')
+    this.gateApproval = null
     for (const dispose of [...this.agentDisposers.splice(0), ...this.disposers.splice(0)]) {
       try {
         dispose()
@@ -1384,21 +1406,33 @@ export class HarnessGatewayClient extends GatewayClient {
     this.handle = null
     this.agent = null
 
-    for (const handle of this.live.values()) {
-      void handle.dispose().catch(() => {})
-    }
-
+    const handles = [...this.live.values()]
     this.live.clear()
+
+    this.shutdown = (async () => {
+      const disposed = await Promise.allSettled(handles.map(handle => handle.dispose()))
+      // Disposal closes the log; drain persistence before publishing its final
+      // projection checkpoint. The cache's detach listener is otherwise async.
+      await this.ctx.get('sessionPersistence')?.flush()
+      const cache = this.ctx.get('sessionProjectionCache')
+      const checkpointed = await Promise.allSettled(handles.map(handle => cache?.write(handle.agent.session)))
+      const failures = [...disposed, ...checkpointed].filter(result => result.status === 'rejected')
+
+      if (failures.length) {
+        throw new AggregateError(failures.map(result => result.reason), 'Alego session shutdown failed')
+      }
+    })()
+
+    return this.shutdown
   }
 
 
   private async listPersisted(): Promise<SessionHeader[]> {
-    const persistence = this.ctx.get('sessionPersistence') as
-      | { list?: (signal?: AbortSignal) => Promise<SessionHeader[]> }
-      | undefined
+    const persistence = this.ctx.get('sessionPersistence')
 
     try {
-      const headers = (await persistence?.list?.()) ?? []
+      const snapshots = (await persistence?.list()) ?? []
+      const headers = snapshots.map(snapshot => snapshot.header)
 
       return [...headers].sort((a, b) => b.createdAt - a.createdAt)
     } catch {
@@ -1407,12 +1441,18 @@ export class HarnessGatewayClient extends GatewayClient {
   }
 
   private cachedTitle(header: SessionHeader): string | undefined {
-    const cache = this.ctx.get('sessionProjectionCache') as
-      | { cachedSnapshot?: (meta: SessionHeader) => { values?: { title?: { title?: string } } } | undefined }
-      | undefined
+    // Listing metadata omits a seeded session's inherited cut. Never guess it.
+    if (header.isSeeded) {
+      return undefined
+    }
+
+    const cache = this.ctx.get('sessionProjectionCache')
 
     try {
-      return cache?.cachedSnapshot?.(header)?.values?.title?.title
+      const snapshot = cache?.cachedSnapshot(header, SessionLogOffset(0), ['title'])
+        ?? cache?.cachedPredecessorTitle(header, SessionLogOffset(0))
+
+      return snapshot?.values.title ?? undefined
     } catch {
       return undefined
     }
@@ -1639,7 +1679,7 @@ export class HarnessGatewayClient extends GatewayClient {
 
           this.attach(handle)
 
-          const messages = this.rehydrate(handle.agent.session.events)
+          const messages = this.rehydrate(handle.agent.session.snapshotEvents())
           const running = handle.agent.status === 'running'
 
           this.publishLocalEvent({ payload: this.info!, session_id: this.sid, type: 'session.info' })
@@ -1722,7 +1762,7 @@ export class HarnessGatewayClient extends GatewayClient {
           current: id === this.sid,
           id,
           last_active: undefined,
-          message_count: handle.agent.session.events.filter(e => e.type === 'user/message').length,
+          message_count: handle.agent.session.snapshotEvents().filter(e => e.type === 'user/message').length,
           model: this.selection.current?.model,
           started_at: handle.agent.session.header.createdAt,
           status: handle.agent.status === 'running' ? 'working' : 'idle',
@@ -1956,7 +1996,7 @@ export class HarnessGatewayClient extends GatewayClient {
           } else {
             pending.resolve({
               answers: pending.items.map(q => {
-                const raw = answers[q.question]
+                const raw = answers[q.id]
 
                 if (typeof raw !== 'string' || raw === '') {
                   return { id: q.id, selected: [] }

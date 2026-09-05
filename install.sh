@@ -5,7 +5,7 @@
 #   cd alego-tui && ./install.sh
 #   ./bin/alego-tui.js      (or: alego --profile alego-tui)
 #
-# Needs a local Alego checkout, since @singula-ai/* is not on npm yet. Place it
+# Needs an Alego >= 0.1.3-alpha.1 source checkout. Place it
 # beside this repo (../alego) or export ALEGO_REPO=/path/to/alego.
 #
 # Deliberately POSIX-clean: no arrays, no process substitution, no pipefail, so

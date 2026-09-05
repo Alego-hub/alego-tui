@@ -8,7 +8,7 @@
 import { LlmAdapter } from '@singula-ai/alego-llm'
 
 export const name = 'mock-llm'
-export const inject = ['llm', 'commands']
+export const inject = ['llm', 'commands', 'userQuestions']
 
 const lastUserIndex = messages => {
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -47,6 +47,14 @@ const pieces = (text, size = 8) => {
 }
 
 class MockAdapter extends LlmAdapter {
+  async listModels(provider) {
+    return ['mock-1', 'mock-2'].map(id => ({ provider, id, name: id }))
+  }
+
+  async resolveModel(provider, model) {
+    return { provider, id: model, name: model, context: { contextWindow: 64000 } }
+  }
+
   async *stream(options) {
     const user = lastUserText(options.messages ?? [])
     // Only tool results from the CURRENT turn count — history keeps old ones.
@@ -54,6 +62,19 @@ class MockAdapter extends LlmAdapter {
     const hasToolResult = msgs
       .slice(lastUserIndex(msgs) + 1)
       .some(m => Array.isArray(m.content) && m.content.some(b => b.type === 'tool-result'))
+
+    if (!hasToolResult && (user.includes('USE-QUESTION') || user.includes('USE-CHILD'))) {
+      const question = user.includes('USE-QUESTION')
+      const name = question ? 'ask_user_question' : 'subagent'
+      const args = JSON.stringify(question
+        ? { questions: [{ id: 'color', question: 'Choose an e2e color', options: [{ label: 'Amber' }, { label: 'Blue' }] }] }
+        : { description: 'Check child telemetry', prompt: 'hello child', run_in_background: false })
+      yield { blockType: 'tool-call', index: 0, type: 'block-start' }
+      yield { argumentsDelta: args, id: 'mock-interaction', name, type: 'tool-call-delta', index: 0 }
+      yield { block: { arguments: args, id: 'mock-interaction', name, type: 'tool-call' }, index: 0, type: 'block-end' }
+      yield { reason: { kind: 'tool-calls' }, type: 'finish' }
+      return
+    }
 
     if (user.includes('USE-WRITE') && !hasToolResult) {
       const args = JSON.stringify({ content: 'alpha line\n' + 'beta line\n', file_path: 'e2e-scratch/e2e-write-probe.txt' })
@@ -80,7 +101,11 @@ class MockAdapter extends LlmAdapter {
     }
 
     if (hasToolResult) {
-      const text = 'TOOL-STEP-DONE'
+      const results = msgs.slice(lastUserIndex(msgs) + 1).flatMap(m => m.content ?? []).filter(b => b.type === 'tool-result')
+      const resultText = results.flatMap(b => b.content ?? []).filter(b => b.type === 'text').map(b => b.text).join(' ')
+      const text = user.includes('USE-QUESTION') ? `QUESTION-RESULT: ${resultText}`
+        : user.includes('USE-CHILD') ? `CHILD-RESULT: ${resultText}` : 'TOOL-STEP-DONE'
+
 
       yield { blockType: 'text', index: 0, type: 'block-start' }
       yield { index: 0, text, type: 'text-delta' }
@@ -103,11 +128,25 @@ class MockAdapter extends LlmAdapter {
       return
     }
 
-    const text = `MOCK-REPLY: ${user}`
+    if (user.includes('USE-SLOW')) {
+      yield { blockType: 'text', index: 0, type: 'block-start' }
+      yield { index: 0, text: 'STREAM-IN-PROGRESS', type: 'text-delta' }
+      await new Promise((resolve, reject) => {
+        const cancel = () => { clearTimeout(timer); reject(options.signal.reason) }
+        const timer = setTimeout(() => { options.signal.removeEventListener('abort', cancel); resolve() }, 10000)
+        options.signal.addEventListener('abort', cancel, { once: true })
+      })
+      yield { index: 0, text: ' STREAM-FINISHED', type: 'text-delta' }
+      yield { block: { text: 'STREAM-IN-PROGRESS STREAM-FINISHED', type: 'text' }, index: 0, type: 'block-end' }
+      yield { reason: { kind: 'stop' }, type: 'finish' }
+      return
+    }
+
+    const text = user === 'after interruption' ? 'RECOVERY-OK' : user.includes('USE-MODEL') ? `MODEL-REPLY: ${options.model}` : `MOCK-REPLY: ${user}`
 
     yield { blockType: 'text', index: 0, type: 'block-start' }
 
-    for (const piece of pieces(text)) {
+    for (const piece of pieces(text, user === 'after interruption' ? text.length : 8)) {
       yield { index: 0, text: piece, type: 'text-delta' }
       await new Promise(r => setTimeout(r, 5))
     }
@@ -120,6 +159,19 @@ class MockAdapter extends LlmAdapter {
 
 export function apply(ctx) {
   ctx.llm.registerAdapter(['mock'], new MockAdapter())
+
+  ctx.commands.register({
+    name: 'e2eplan',
+    description: 'e2e plan review',
+    handler: async ({ agent, signal }) => {
+      const answer = await ctx.userQuestions.ask({ agent, signal, questions: [{
+        id: 'plan', question: 'Review e2e plan', detail: 'E2E PLAN CONTENT',
+        intent: { kind: 'plan-review', approve: 'Approve plan' },
+        options: [{ label: 'Approve plan' }, { label: 'Keep planning' }]
+      }] })
+      return { kind: 'success', text: `PLAN-RESULT: ${answer.answers[0].selected.join(', ')}` }
+    }
+  })
 
   // A harness-registered slash command for the command-bridge e2e.
   ctx.commands.register({

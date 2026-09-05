@@ -777,6 +777,8 @@ export interface QuestionOption {
  *  control request. `header` is the short chip label in the navigation bar;
  *  `multiSelect` switches the option list to checkboxes with a submit row. */
 export interface QuestionSpec {
+  /** Stable backend identity; legacy gateways use the question text. */
+  id?: string
   header?: string
   multiSelect?: boolean
   options?: QuestionOption[]

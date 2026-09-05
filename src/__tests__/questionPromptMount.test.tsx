@@ -463,3 +463,18 @@ describe('QuestionPrompt — review step', () => {
     p.unmount()
   })
 })
+
+
+describe('QuestionPrompt — stable question identities', () => {
+  it('keeps separate answers when two questions have the same text', async () => {
+    const p = mount([{ ...q1, id: 'first' }, { ...q1, id: 'second' }])
+    try {
+      await p.press('1', 20)
+      await p.press('2', 20)
+      await p.press(ENTER, 20)
+      await waitFor(() => expect(p.onAnswer).toHaveBeenCalledWith({ first: 'Two', second: 'All seven' }))
+    } finally {
+      p.unmount()
+    }
+  })
+})

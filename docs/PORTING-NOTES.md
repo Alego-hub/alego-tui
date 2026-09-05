@@ -294,3 +294,31 @@ observed behavior instead of leaving it skipped.
   `pipefail` — and syntax-checks under `sh`, `bash`, `bash --posix`, `dash` and `zsh`.
 - Testing gap worth remembering: a shell script that is only ever run one way is only tested one
   way. `sh -n` across shells is nearly free and would have caught this before it shipped.
+
+
+## Alego 0.1.3-alpha.1 — v0.1.1 integration update
+
+- Target: upstream `73f0e5f4fca16764e2c003ed73051b0ecc114722`. Alego packages
+  are now published, but the npm stable tag remains at 0.1.2; this plugin uses a
+  built checkout for the newer APIs. Node requirements match the harness.
+- `Session.events` became `snapshotEvents()`. Live `assistant/chunk` log events
+  became transient `agent/assistant-stream` frames; durable `assistant/message`
+  events still supply completed text and usage. The UI filters live frames by agent.
+- Persistence listing now returns snapshots with a nested `header`. Cached titles
+  are nullable strings, and cache lookup requires an inherited event count. Root
+  listings use zero; seeded listings omit the cache hint because their inherited
+  cut is unavailable. Predecessor title hints remain usable without loading a log.
+- Questions use `user-questions/request` waterfall listeners. The listener delegates
+  other agents, preserves question IDs through the component, and releases pending
+  requests on abort or teardown. The bundle supplies `alego-tool-ask-user`, which the
+  current base bundle omits. `alego-tool-todo` supplies the todo event types.
+- Shutdown now awaits agent disposal, the persistence flush, and final projection
+  checkpoints before exiting Node. Fire-and-forget teardown lost a title renamed
+  immediately before `/quit`; the restart test checks its presence in the picker.
+- Launcher resolution prefers the explicit checkout, then linked packages, then
+  PATH. The packaged files include the resolver imported by the launcher.
+- Core PTY tests load the shipped bundle and exercise the interaction changes,
+  actual model routing, persisted titles/resume, interruption, and clean exit.
+  Each input starts a new assertion window so an earlier tool completion cannot
+  satisfy a later turn. Color and TUI preferences use a controlled scratch home.
+  The installed suite executes `sh install.sh` and the public launcher.

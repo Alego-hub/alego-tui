@@ -519,26 +519,26 @@ export function useMainApp(gw: GatewayClient) {
 
   const gateway = useMemo(() => ({ gw, rpc }), [gw, rpc])
 
-  const die = useCallback(() => {
-    gw.kill('app.die')
-    exit()
-    // Ink's exit() calls unmount() which resets terminal modes but does NOT
-    // call process.exit().  Without an explicit exit the Node process stays
-    // alive (stdin listener keeps the event loop open), so the process.on('exit')
-    // handler in entry.tsx — which sends the final resetTerminalModes() — never
-    // fires.  This leaves kitty keyboard protocol, mouse modes, etc. enabled
-    // in the parent shell.  See issue #19194.
-    process.exit(0)
-  }, [exit, gw])
-
   const dieWithCode = useCallback(
     (code: number) => {
-      gw.kill(`app.dieWithCode:${code}`)
-      exit()
-      process.exit(code)
+      // In-process harnesses must drain session logs and projection checkpoints
+      // before process.exit; Ink's exit only unmounts the terminal UI.
+      void Promise.resolve(gw.kill(`app.dieWithCode:${code}`)).then(
+        () => {
+          exit()
+          process.exit(code)
+        },
+        error => {
+          process.stderr.write(`alego-tui shutdown: ${rpcErrorMessage(error)}\n`)
+          exit()
+          process.exit(1)
+        }
+      )
     },
     [exit, gw]
   )
+
+  const die = useCallback(() => dieWithCode(0), [dieWithCode])
 
   // ── --worktree exit flow ────────────────────────────────────────────────
   // /exit and the idle hotkey exits route through here instead of die(): with

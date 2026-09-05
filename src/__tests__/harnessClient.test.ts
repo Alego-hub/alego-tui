@@ -10,7 +10,7 @@ import { HarnessGatewayClient } from '../harness/client.js'
 
 type Listener = (...args: unknown[]) => void
 
-const SESSION = { events: [] as unknown[], header: { createdAt: 100, cwd: '/tmp/w', id: 'cc-test-session', version: 1 }, marker: 'session' }
+const SESSION = { snapshotEvents: () => [] as unknown[], header: { createdAt: 100, cwd: '/tmp/w', id: 'cc-test-session', version: 1 }, marker: 'session' }
 
 const TOOL_CARDS: Record<string, unknown> = {
   bash: { card: 'terminal', exitCode: 0, output: 'ran fine' },
@@ -89,14 +89,13 @@ function makeWorld() {
     cancel: vi.fn(),
     followup: vi.fn(),
     id: 'cc-resumed-1',
-    session: { events: storedEvents, header: { createdAt: 111, cwd: '/tmp/w', id: 'cc-resumed-1', version: 1 }, marker: 'resumed' },
+    session: { snapshotEvents: () => storedEvents, header: { createdAt: 111, cwd: '/tmp/w', id: 'cc-resumed-1', version: 1 }, marker: 'resumed' },
     status: 'idle',
     steer: vi.fn()
   }
   const resumedHandle = { agent: resumedAgent, dispose: vi.fn(async () => {}) }
   const policies: Array<[unknown, string]> = []
   const planSets: Array<[unknown, boolean]> = []
-  const providers: Array<{ ask: (r: unknown) => Promise<unknown> }> = []
   const ctx = {
     agents: {
       create: vi.fn(async () => handle),
@@ -125,10 +124,6 @@ function makeWorld() {
 
       if (name === 'planMode') {
         return { set: (a: unknown, active: boolean) => planSets.push([a, active]) }
-      }
-
-      if (name === 'userQuestions') {
-        return { registerProvider: (prov: { ask: (r: unknown) => Promise<unknown> }) => { providers.push(prov); return () => {} } }
       }
 
       if (name === 'commands') {
@@ -171,9 +166,10 @@ function makeWorld() {
 
       if (name === 'sessionPersistence') {
         return {
+          flush: async () => {},
           list: async () => [
-            { createdAt: 50, id: 'cc-old-1', version: 1 },
-            { createdAt: 90, id: 'cc-old-2', version: 1 }
+            { header: { createdAt: 50, id: 'cc-old-1', version: 1 }, revision: 'r1' },
+            { header: { createdAt: 90, id: 'cc-old-2', version: 1 }, revision: 'r2' }
           ]
         }
       }
@@ -193,10 +189,10 @@ function makeWorld() {
       arr.push(fn)
       listeners.set(name, arr)
 
-      return () => {}
+      return () => { listeners.set(name, arr.filter(listener => listener !== fn)) }
     }
   }
-  const client = new HarnessGatewayClient(ctx as never, { cwd: '/tmp/w', model: 'mock-1', provider: 'mock' })
+  const client = new HarnessGatewayClient(ctx as never, { cwd: '/tmp/w', model: 'mock-1', provider: 'mock', sessionId: 'cc-test-session' })
   const events: GatewayEvent[] = []
 
   client.on('event', ev => events.push(ev as GatewayEvent))
@@ -210,7 +206,7 @@ function makeWorld() {
 
   /** A session/event from some OTHER session — a subagent's, or a sibling. */
   const fireFrom = (sessionId: string, type: string, data: unknown) => {
-    const session = { events: [], header: { createdAt: 0, cwd: '/tmp/w', id: sessionId, version: 1 }, marker: 'other' }
+    const session = { snapshotEvents: () => [], header: { createdAt: 0, cwd: '/tmp/w', id: sessionId, version: 1 }, marker: 'other' }
 
     for (const fn of listeners.get('session/event') ?? []) {
       fn(session, { data, seq: 0, time: 0, type })
@@ -223,7 +219,7 @@ function makeWorld() {
     }
   }
 
-  return { agent, cancels, client, ctx, emit, events, fire, fireFrom, followups, listeners, planSets, policies, providers, resumedAgent, resumedHandle, steers }
+  return { agent, cancels, client, ctx, emit, events, fire, fireFrom, followups, listeners, planSets, policies, resumedAgent, resumedHandle, steers }
 }
 
 const settle = () => new Promise(resolve => setTimeout(resolve, 0))
@@ -252,9 +248,9 @@ describe('HarnessGatewayClient', () => {
     w.events.length = 0
 
     w.fire('turn/start', { turn: 1 })
-    w.fire('assistant/chunk', { chunk: { index: 0, text: 'Hel', type: 'text-delta' }, step: 1, turn: 1 })
-    w.fire('assistant/chunk', { chunk: { index: 0, text: 'lo', type: 'text-delta' }, step: 1, turn: 1 })
-    w.fire('assistant/chunk', { chunk: { index: 0, text: 'why', type: 'reasoning-delta' }, step: 1, turn: 1 })
+    w.emit('agent/assistant-stream', { agent: w.agent, frame: { type: 'chunk', chunk: { index: 0, text: 'Hel', type: 'text-delta' }, step: 1, turn: 1 } })
+    w.emit('agent/assistant-stream', { agent: w.agent, frame: { type: 'chunk', chunk: { index: 0, text: 'lo', type: 'text-delta' }, step: 1, turn: 1 } })
+    w.emit('agent/assistant-stream', { agent: w.agent, frame: { type: 'chunk', chunk: { index: 0, text: 'why', type: 'reasoning-delta' }, step: 1, turn: 1 } })
     w.fire('tool/call', { arguments: '{"command":"ls"}', callId: 'c1', name: 'bash', step: 1, turn: 1 })
     w.fire('tool/result', {
       message: { content: [{ content: [{ text: 'file.txt', type: 'text' }], toolCallId: 'c1', type: 'tool-result' }] },
@@ -777,9 +773,8 @@ describe('HarnessGatewayClient', () => {
     const res = await w.client.request<{ session_id: string }>('session.create', {})
     const createOpts = (w.ctx.agents.create as ReturnType<typeof vi.fn>).mock.calls[0]![0] as { sessionId: unknown }
 
-    // The requested id is freshly generated; the binding then adopts the
-    // agent's own id (identical in a real harness, distinct in this fake).
-    expect(String(createOpts.sessionId)).toMatch(/^tui-/)
+    // A configured session id is passed through to the real agent registry.
+    expect(String(createOpts.sessionId)).toBe('cc-test-session')
     expect(res.session_id).toBe(String(w.agent.id))
   })
 
@@ -864,13 +859,13 @@ describe('HarnessGatewayClient', () => {
     expect(w.events.some(e => e.type === 'approval.request')).toBe(false)
   })
 
-  it('serves user questions and maps answers back by question text', async () => {
+  it('serves user questions and maps answers back by question id', async () => {
     const w = makeWorld()
 
     w.client.start()
     await settle()
 
-    const provider = w.providers[0]!
+    const provider = { ask: (request: object) => w.listeners.get('user-questions/request')![0]!({ ...request, agent: w.agent }, () => Promise.reject(new Error('unclaimed'))) }
     const answer = provider.ask({
       questions: [
         { id: 'q1', multiSelect: false, options: [{ label: 'Red' }, { label: 'Blue' }], question: 'Pick a color' },
@@ -886,7 +881,7 @@ describe('HarnessGatewayClient', () => {
     expect(ask.payload.questions).toHaveLength(2)
 
     await w.client.request('question.respond', {
-      answers: { 'Pick a color': 'typed something', 'Pick letters': 'A, B, extra note' }
+      answers: { q1: 'typed something', q2: 'A, B, extra note' }
     })
 
     const got = await answer
@@ -903,7 +898,7 @@ describe('HarnessGatewayClient', () => {
     w.client.start()
     await settle()
 
-    const provider = w.providers[0]!
+    const provider = { ask: (request: object) => w.listeners.get('user-questions/request')![0]!({ ...request, agent: w.agent }, () => Promise.reject(new Error('unclaimed'))) }
     const approve = provider.ask({
       questions: [{ detail: 'THE PLAN', id: 'p1', intent: { approve: 'Approve plan', kind: 'plan-review' }, options: [{ label: 'Approve plan' }, { label: 'Keep planning' }], question: 'Review' }]
     }) as Promise<{ answers: Array<{ id: string; selected: string[] }> }>
@@ -1206,8 +1201,8 @@ describe('HarnessGatewayClient', () => {
     w.events.length = 0
 
     w.fire('turn/start', { turn: 1 })
-    w.fire('assistant/chunk', { chunk: { argumentsDelta: '{', id: 'g1', index: 0, name: 'bash', type: 'tool-call-delta' }, step: 1, turn: 1 })
-    w.fire('assistant/chunk', { chunk: { argumentsDelta: '}', id: 'g1', index: 0, name: 'bash', type: 'tool-call-delta' }, step: 1, turn: 1 })
+    w.emit('agent/assistant-stream', { agent: w.agent, frame: { type: 'chunk', chunk: { argumentsDelta: '{', id: 'g1', index: 0, name: 'bash', type: 'tool-call-delta' }, step: 1, turn: 1 } })
+    w.emit('agent/assistant-stream', { agent: w.agent, frame: { type: 'chunk', chunk: { argumentsDelta: '}', id: 'g1', index: 0, name: 'bash', type: 'tool-call-delta' }, step: 1, turn: 1 } })
 
     expect(w.events.filter(e => e.type === 'tool.generating')).toHaveLength(1)
   })
@@ -1248,4 +1243,82 @@ describe('HarnessGatewayClient', () => {
       rmSync(home, { force: true, recursive: true })
     }
   })
+  it('ignores another agent’s live stream and unwinds subscriptions on close', async () => {
+    const w = makeWorld()
+    w.client.start()
+    await settle()
+    w.events.length = 0
+    w.emit('agent/assistant-stream', { agent: w.resumedAgent, frame: { type: 'chunk', chunk: { type: 'text-delta', text: 'other', index: 0 } } })
+    expect(w.events).toEqual([])
+    await w.client.request('session.close', { session_id: w.agent.id })
+    w.emit('agent/assistant-stream', { agent: w.agent, frame: { type: 'chunk', chunk: { type: 'text-delta', text: 'closed', index: 0 } } })
+    expect(w.events).toEqual([])
+  })
+
+  it('delegates other agents’ questions and rejects an interrupted question', async () => {
+    const w = makeWorld()
+    w.client.start()
+    await settle()
+    const ask = w.listeners.get('user-questions/request')![0]!
+    const next = vi.fn(async () => ({ answers: [] }))
+    await ask({ agent: w.resumedAgent, questions: [] }, next)
+    expect(next).toHaveBeenCalledOnce()
+    const controller = new AbortController()
+    const answer = ask({ agent: w.agent, signal: controller.signal, questions: [{ id: 'q', question: 'Continue?' }] }, next) as unknown as Promise<unknown>
+    const rejected = expect(answer).rejects.toThrow('Question cancelled')
+    controller.abort()
+    await rejected
+    await w.client.request('question.respond', { answers: { q: 'late answer' } })
+    expect(next).toHaveBeenCalledOnce()
+  })
+
+  it('cancels a pending question when the plugin is disposed', async () => {
+    const w = makeWorld()
+    w.client.start()
+    await settle()
+    const ask = w.listeners.get('user-questions/request')![0]!
+    const answer = ask({ agent: w.agent, questions: [{ id: 'q', question: 'Continue?' }] }, vi.fn()) as unknown as Promise<unknown>
+    const rejected = expect(answer).rejects.toThrow('Question cancelled')
+    await w.client.kill()
+    await rejected
+  })
+
+  it('uses string cache titles with the exact root cut and skips unknown seeded cuts', async () => {
+    const w = makeWorld()
+    const get = w.ctx.get
+    const cachedSnapshot = vi.fn(() => ({ values: { title: 'Cached title' } }))
+    w.ctx.get = (name: string) => {
+      if (name === 'sessionProjectionCache') return { cachedSnapshot } as never
+      if (name === 'sessionPersistence') return { list: async () => [
+        { header: { createdAt: 90, id: 'seed', isSeeded: true } },
+        { header: { createdAt: 50, id: 'root' } }
+      ] } as never
+      return get(name)
+    }
+    const result = await w.client.request<{ sessions: { id: string; title: string }[] }>('session.list')
+    expect(result.sessions.map(s => [s.id, s.title])).toEqual([['seed', 'seed'], ['root', 'Cached title']])
+    expect(cachedSnapshot).toHaveBeenCalledWith({ createdAt: 50, id: 'root' }, 0, ['title'])
+    expect(cachedSnapshot.mock.calls.every(([header]) => header.id === 'root')).toBe(true)
+  })
+
+  it('waits for session disposal and final checkpoints before shutdown completes', async () => {
+    const w = makeWorld()
+    w.client.start()
+    await settle()
+    let finishDispose!: () => void
+    const disposed = new Promise<void>(resolve => { finishDispose = resolve })
+    const handle = await w.ctx.agents.create()
+    handle.dispose.mockImplementation(() => disposed)
+    const write = vi.fn(async () => {})
+    const get = w.ctx.get
+    w.ctx.get = name => name === 'sessionProjectionCache' ? { write } as never : get(name)
+    const shutdown = w.client.kill()
+    expect(w.client.kill()).toBe(shutdown)
+    await settle()
+    expect(write).not.toHaveBeenCalled()
+    finishDispose()
+    await shutdown
+    expect(write).toHaveBeenCalledWith(w.agent.session)
+  })
+
 })
