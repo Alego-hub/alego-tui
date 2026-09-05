@@ -17,7 +17,7 @@ slash commands, model picker, context bar — running **in-process** against Ale
  ╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝  ╚═════╝            ╚═╝    ╚═════╝ ╚═╝
  🧱 Claude Code style TUI for Alego
 
- ╭─── alego-tui v0.1.0 ─────────────────────────────────────────────────────────────────────────╮
+ ╭─── alego-tui v0.1.1 ─────────────────────────────────────────────────────────────────────────╮
  │                                                                                              │
  │           Welcome back, you                 │ ▾ Available Tools                              │
  │                                             │ alego: bash, create_goal, edit, …+22           │
@@ -39,9 +39,11 @@ slash commands, model picker, context bar — running **in-process** against Ale
 
 ## Install
 
-Requires Node ≥ 22.19, npm, pnpm, and a **local Alego checkout** — `@singula-ai/*` is not
-published to npm yet, so alego-tui builds and runs against a checkout rather than a registry
-install.
+Requires Node **^22.19 or ≥24**, npm, pnpm, and a **local Alego checkout at
+0.1.3-alpha.1 or newer**. This update targets upstream main at
+[`73f0e5f4fc`](https://github.com/singula-ai/alego/commit/73f0e5f4fca16764e2c003ed73051b0ecc114722).
+Alego is published on npm, but the registry's stable 0.1.2 predates the session and
+interaction APIs used here. Build the current source checkout for this plugin.
 
 ```sh
 git clone https://github.com/singula-ai/alego.git
@@ -55,7 +57,10 @@ cd alego-tui
 
 `install.sh` finds Alego beside this repo (`../alego`); point it elsewhere with
 `ALEGO_REPO=/path/to/alego ./install.sh`. The link step runs from `postinstall`, so a plain
-`npm install` keeps the harness packages resolvable too.
+`npm install` keeps the harness packages resolvable too. The launcher prefers
+`ALEGO_REPO`, then the linked checkout, then `alego` on PATH, so an older global install
+cannot shadow the selected checkout. Use the pnpm version declared by Alego's
+`packageManager` field (currently 11.7.0); Corepack can provide it.
 
 Model and provider configuration comes from your Alego profile (`agent-default-model` settings,
 or an `- id: tui` config override in the profile's `cordis.patch.yml`: `provider`, `model`,
@@ -120,9 +125,9 @@ fallback for people coming from Claude Code.
 
 ```sh
 npm install                      # postinstall links @singula-ai/* from the Alego checkout
-npm run typecheck && npm test    # 151 files / 1957 tests
+npm run typecheck && npm test    # types + unit and component tests
 npm run e2e                      # PTY e2e against a real Alego boot + scripted LLM
-npm run e2e:install              # the real `alego plugin add` install path
+npm run e2e:install              # sh install.sh + the public launcher
 npm run verify:boundary          # only src/harness may import @singula-ai/*
 ```
 
@@ -130,6 +135,12 @@ Tool rows are the fiddliest surface to eyeball, so they have their own harness:
 `python3 scripts/tool-gallery.py [tool…] [--expand]` drives a real Alego boot through one tool per
 scenario (via the scripted `test/e2e/probe-llm.mjs`) and prints the trail it rendered — the thing
 to diff against the same call made to Claude Code.
+
+The core suite boots the shipped bundle in a PTY with a scripted LLM and checks streaming,
+interruption, tool execution and diffs, approvals, questions, plan review, todos, child agents,
+model routing, and persisted session listing/resume. It uses isolated Alego/TUI homes and
+requires no API key. The install suite runs `sh install.sh` into a scratch profile and drives
+`bin/alego-tui.js` through a full streamed turn.
 
 ### The adapter boundary
 
@@ -141,7 +152,11 @@ Optional Alego services are reached through `ctx.get(name)` with optional chaini
 without one degrades that feature instead of failing to boot. Because those casts are hand-written
 structural types, `tsc` cannot check them against the real service — so
 `src/harness/serviceContracts.ts` asserts each assumed signature against Alego's own types at
-compile time. Add a call there when you reach for a new service member.
+compile time. Add a call there when you reach for a new service member. Session history uses
+`snapshotEvents()`; live deltas arrive through `agent/assistant-stream`. User input is answered
+through the `user-questions/request` waterfall, with stable question IDs preserved by the UI.
+The bundle includes `alego-tool-ask-user`, which is no longer part of Alego's base bundle.
+Shutdown drains session storage and projection checkpoints before exiting.
 
 ### Versioning
 

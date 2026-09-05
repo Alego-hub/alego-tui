@@ -972,7 +972,7 @@ export class GatewayClient extends EventEmitter {
     return this.logs.slice(-limit).join('\n')
   }
 
-  kill(_reason = 'requested'): void {
+  kill(_reason = 'requested'): void | Promise<void> {
     if (this.readyTimer) {
       clearTimeout(this.readyTimer)
       this.readyTimer = null

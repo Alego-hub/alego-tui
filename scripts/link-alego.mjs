@@ -2,18 +2,8 @@
 // Links the Alego harness packages into node_modules/@singula-ai from a local
 // Alego checkout.
 //
-// Why this exists: Alego is not published to npm, so `@singula-ai/*` cannot be
-// declared as ordinary dependencies. Alego is a pnpm workspace in which every
-// package carries its own node_modules/@singula-ai symlinks to its workspace
-// peers, so symlinking a package directory in here resolves that package AND
-// its peers correctly — for TypeScript, for Node at runtime, and for the e2e
-// driver that boots the real `alego` CLI out of this repo's node_modules.
-//
-// The whole scope is linked rather than a curated list: it costs a few hundred
-// symlinks, and it means a newly-consumed package never needs a change here.
-//
-// When Alego publishes, delete this script and move `@singula-ai/*` into
-// dependencies — nothing in src/ changes.
+// Alego main can advance beyond the published npm release. Link the checkout
+// and its workspace peer graph so builds and tests use the same host revision.
 import { existsSync, readFileSync, mkdirSync, readdirSync, lstatSync, rmSync, symlinkSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -67,8 +57,7 @@ function findCheckout() {
 function fail(reason) {
   console.error(`link-alego: ${reason}
 
-alego-tui builds against a local Alego checkout because @singula-ai/* is not
-published to npm. To fix:
+alego-tui builds against a local Alego checkout to use the current pre-release APIs. To fix:
 
   git clone https://github.com/singula-ai/alego.git
   cd alego && pnpm install && pnpm build:lib

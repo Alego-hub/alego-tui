@@ -2,8 +2,8 @@
 """Installed-path e2e: exercise the REAL distribution flow into a scratch
 ALEGO_HOME —
 
-    alego plugin --profile alego-tui add <this checkout>
-    alego --profile alego-tui
+    sh install.sh
+    bin/alego-tui.js
 
 with the bundle's own cordis.patch.yml supplying the tui row (the dev
 patch only inserts the mock LLM and overrides the row's config), then drive
@@ -41,8 +41,10 @@ def install() -> None:
     HOME.mkdir(parents=True)
     env = dict(os.environ)
     env["ALEGO_HOME"] = str(HOME)
+    env["ALEGO_TUI_PROFILE"] = "alego-tui"
+    env["ALEGO_REPO"] = str(ALEGO_CLI.resolve().parents[3])
     r = sh(
-        ["node", str(ALEGO_CLI), "plugin", "--profile", "alego-tui", "add", str(ROOT)],
+        ["sh", str(ROOT / "install.sh")],
         env=env,
         cwd=str(ROOT),
         capture_output=True,
@@ -52,7 +54,7 @@ def install() -> None:
     if r.returncode != 0:
         print(r.stdout[-3000:])
         print(r.stderr[-3000:])
-        raise SystemExit("alego plugin add failed")
+        raise SystemExit("sh install.sh failed")
     manifest = json.loads((HOME / "profiles" / "alego-tui" / "package.json").read_text())
     bundles = manifest.get("alego", {}).get("profile", {}).get("bundles", [])
     print("  profile bundles:", bundles)
@@ -77,9 +79,12 @@ def drive() -> list[str]:
     failures: list[str] = []
     env = dict(os.environ)
     env["ALEGO_HOME"] = str(HOME)
+    env["ALEGO_TUI_PROFILE"] = "alego-tui"
+    env["ALEGO_REPO"] = str(ALEGO_CLI.resolve().parents[3])
     env["NODE_ENV"] = "production"
     env["ALEGO_TUI_INLINE"] = "1"
-    cmd = ["node", str(ALEGO_CLI), "--profile", "alego-tui", "--patch", str(PATCH)]
+    env["ALEGO_TUI_HOME"] = str(HOME / "tui")
+    cmd = ["node", str(ROOT / "bin/alego-tui.js"), "--patch", str(PATCH)]
     master, slave = pty.openpty()
     fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 120, 0, 0))
     os.set_inheritable(slave, True)
@@ -150,6 +155,8 @@ def drive() -> list[str]:
             pump([], 2.0)
         try:
             proc.wait(timeout=20)
+            if proc.returncode != 0:
+                failures.append(f"install boot: exited with {proc.returncode}")
         except subprocess.TimeoutExpired:
             failures.append("install boot: did not exit after /quit")
     finally:

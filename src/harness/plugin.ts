@@ -99,9 +99,9 @@ export async function mountAlegoTui(ctx: Context, config: Config): Promise<void>
     }
   })
 
-  ctx.effect(() => () => {
+  ctx.effect(() => async () => {
     try {
-      gw.kill('plugin-teardown')
+      await gw.kill('plugin-teardown')
     } catch {
       // teardown is best effort
     }

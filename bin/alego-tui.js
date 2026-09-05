@@ -44,6 +44,11 @@ env.NODE_ENV ??= 'production'
 const [command, ...prefix] = cli
 const child = spawn(command, [...prefix, '--profile', PROFILE, ...args], { env, stdio: 'inherit' })
 
+child.on('error', error => {
+  console.error(`alego-tui: could not launch Alego — ${error.message}`)
+  process.exit(1)
+})
+
 child.on('exit', (code, signal) => {
   if (signal) {
     process.kill(process.pid, signal)

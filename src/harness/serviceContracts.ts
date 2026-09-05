@@ -23,7 +23,7 @@
  */
 import type { Context } from '@singula-ai/cordis'
 import type { Agent } from '@singula-ai/alego-agent'
-import type { Session, SessionHeader } from '@singula-ai/alego-session'
+import type { Session, SessionHeader, SessionLogOffset } from '@singula-ai/alego-session'
 
 // Side-effect type imports: each of these packages augments cordis `Context`
 // with its service key, and without them `Context['tokenMeter']` and friends do
@@ -87,12 +87,19 @@ type _Approval = Satisfies<Service<'approval'>, { setPolicy: (agent: Agent, poli
 
 type _SessionPersistence = Satisfies<
   Service<'sessionPersistence'>,
-  { list: (signal?: AbortSignal) => Promise<SessionHeader[]> }
+  {
+    list: (options?: { signal?: AbortSignal }) => Promise<readonly { header: SessionHeader }[]>
+    flush: () => Promise<void>
+  }
 >
 
 type _SessionProjectionCache = Satisfies<
   Service<'sessionProjectionCache'>,
-  { cachedSnapshot: (meta: SessionHeader) => unknown }
+  {
+    write: (session: Session) => Promise<void>
+    cachedSnapshot: (meta: SessionHeader, inheritedEventCount: SessionLogOffset, keys?: readonly ['title']) => unknown
+    cachedPredecessorTitle: (meta: SessionHeader, inheritedEventCount: SessionLogOffset) => unknown
+  }
 >
 
 type _SessionTitle = Satisfies<Service<'sessionTitle'>, { get: (session: Session) => { title: string } | undefined }>
